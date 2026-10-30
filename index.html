@@ -78,7 +78,7 @@ button,select{font:inherit}button{cursor:pointer;border:1px solid #514838;border
 </section></div></div>
 <div id="adminModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="adminTitle"><div class="admin-modal"><div class="modal-top"><div><h2 id="adminTitle" style="font:700 30px/1.2 Georgia,serif;margin:0 0 8px">Адмін-панель</h2><p style="color:var(--muted);margin:0">Хмарний каталог Supabase. Адмін-редагування доступне лише після входу в обліковий запис адміністратора.</p></div><button class="modal-close" id="closeAdmin">✕</button></div>
 <div id="adminEditor" class="hidden"><button type="button" class="secondary" id="cloudSyncLocal" style="margin-bottom:12px">Перенести локальний каталог у хмару</button><div class="admin-metrics"><div class="admin-metric">Записів у базі<b id="adminPeopleCount">0</b></div><div class="admin-metric">Відповідей записано<b id="adminAnswersCount">0</b></div><div class="admin-metric">Точність відповідей<b id="adminAccuracy">—</b></div></div>
-<section class="gate-admin" style="margin:14px 0;padding:16px;border:1px solid #6c5b3c;border-radius:14px;background:#171920"><h3 style="margin:0 0 6px;color:var(--gold)">🚪 Ворота мініігор</h3><p class="admin-tags-help" style="margin:0 0 12px">Вибери для кожного режиму групу індексів і потрібні значення. До режиму потраплятимуть лише картки, що мають хоча б один із вибраних тегів. Якщо нічого не вибрано — обмеження не діє.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px"><div class="field"><label for="gateMode">Мінігра</label><select id="gateMode" class="record-type"><option value="positive">Позитивний герой</option><option value="profession">Хто за фахом?</option><option value="period">Епоха та держава</option><option value="event">Історичні події</option></select></div><div class="field"><label for="gateIndex">Група індексів</label><select id="gateIndex" class="record-type"><option value="century">Століття / період</option><option value="country">Країна / держава</option><option value="profession">Фах / роль</option><option value="epoch">Епоха</option><option value="events">Події</option></select></div></div><div id="gateValues" style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0"></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" id="saveGates">Зберегти ворота</button><button type="button" class="secondary" id="clearGate">Очистити вибір</button></div><p id="gateMessage" class="admin-tags-help" aria-live="polite"></p></section>
+<section class="gate-admin" style="margin:14px 0;padding:16px;border:1px solid #6c5b3c;border-radius:14px;background:#171920"><h3 style="margin:0 0 6px;color:var(--gold)">🚪 Ворота мініігор</h3><p class="admin-tags-help" style="margin:0 0 12px">Вибери для кожного режиму групу індексів і потрібні значення. До режиму потраплятимуть лише картки, що мають хоча б один із вибраних тегів. Якщо нічого не вибрано — обмеження не діє.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px"><div class="field"><label for="gateMode">Основна мінігра</label><select id="gateMode" class="record-type"><option value="profession">Хто за фахом?</option><option value="period">Держави та епохи</option><option value="event">Події</option><option value="positive">Позитивний герой</option></select></div><div class="field" id="gateLevel2Wrap" style="display:none"><label for="gateLevel2">Другий рівень</label><select id="gateLevel2" class="record-type"><option value="epoch">Епохи</option><option value="country">Держави</option></select></div><div class="field"><label for="gateThird">Режим третього рівня</label><select id="gateThird" class="record-type"></select></div><div class="field"><label for="gateIndex">Група тегів для воріт</label><select id="gateIndex" class="record-type"><option value="century">Століття / період</option><option value="country">Країна / держава</option><option value="profession">Фах / роль</option><option value="epoch">Епоха</option><option value="events">Події</option></select></div></div><div id="gateValues" style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0"></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" id="saveGates">Зберегти ворота</button><button type="button" class="secondary" id="clearGate">Очистити вибір</button></div><p id="gateMessage" class="admin-tags-help" aria-live="polite"></p></section>
 <div class="admin-grid"><section><div class="admin-tabs"><button type="button" class="secondary active" data-admin-type="person">Постаті</button><button type="button" class="secondary" data-admin-type="event">Події</button></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><input id="adminSearch" placeholder="Пошук…" style="flex:1;min-width:130px;background:#15171d;color:var(--text);padding:10px;border:1px solid #454954;border-radius:10px"><button id="newPerson" class="secondary">＋ Новий запис</button></div><div id="adminList" class="admin-list"></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="secondary" id="exportData">Експорт JSON</button><button class="secondary" id="importData">Імпорт JSON</button><input id="importFile" type="file" accept=".json,application/json" class="hidden"></div><p class="admin-tags-help">Експорт — резервна копія бази та локальної статистики. Імпорт замінює поточний каталог; у режимі адміністратора зміни синхронізуються з хмарою.</p></section>
 <section><form id="personForm" class="admin-form"><div class="field wide"><label for="personType">Тип запису</label><select id="personType" class="record-type"><option value="person">Історична постать</option><option value="event">Історична подія</option></select></div><div class="field wide"><label for="personName">Назва / ім’я</label><input id="personName" required maxlength="120"></div><div class="field"><label for="personYears">Роки життя (постаті) / дата (події)</label><input id="personYears" maxlength="80" placeholder="Напр. 1595–1657"></div><div class="field"><label for="personEmoji">Позначка, якщо фото немає</label><input id="personEmoji" maxlength="12" placeholder="ІМ або 🖼️"></div>
 <div class="field wide"><label>Фотографії (можна вибрати кілька)</label><input id="personPhotosUpload" type="file" accept="image/*" multiple><div class="admin-tags-help">Фото оптимізуються та завантажуються в Supabase Storage. Якщо додано кілька — у грі випадково показуватиметься одне з них.</div><div id="photoPreview" class="photo-manager"></div></div>
@@ -305,7 +305,22 @@ function activeQuestions(){
  if(mode==="profession"&&activeFilter&&activeFilter!=="Рандом"){dynamicKey="profession";dynamicLabel="фах / роль «"+activeFilter+"»"}
  if(mode==="period"&&activeFilter){dynamicKey=periodFilterType==="country"?"country":"epoch";dynamicLabel=(dynamicKey==="country"?"країну / державу «":"епоху / період «")+activeFilter+"»"}
  if(dynamicKey){const matchesIds=personIds.filter(id=>matches(id,dynamicKey,activeFilter));const others=personIds.filter(id=>!matches(id,dynamicKey,activeFilter));let generated=0;for(const correct of matchesIds){for(const other of others){if(correct===other)continue;list.push({q:"Хто з цих постатей відповідає категорії: "+dynamicLabel+"?",correct,other,why:"Відповідь визначається основними тегами, заданими в адмін-панелі.",_key:"tag-"+dynamicKey+"-"+normalizedTag(activeFilter)+"-"+correct+"-"+other});if(++generated>=100)break}if(generated>=100)break}}
- const gate=gameGates[mode];if(gate&&Array.isArray(gate.values)&&gate.values.length){const eligible=id=>{const p=taggedPeople[id]||people[id]||{},tags=p.primaryTags||{};const values=tags[gate.key]||[];return values.some(v=>gate.values.some(w=>normalizedTag(v)===normalizedTag(w)))};list=list.filter(q=>eligible(q.correct)&&eligible(q.other));}
+ // Ворота прив'язані до конкретного режиму третього рівня, а не до всієї мінігри.
+ const gateId=gateConfigId(mode,mode==="period"?periodFilterType:null,activeFilter);
+ const gate=gateId?gameGates[gateId]:null;
+ if(gate&&Array.isArray(gate.values)&&gate.values.length){
+   const eligible=id=>{
+     const p=taggedPeople[id]||people[id]||{},tags=p.primaryTags||{};
+     let values=[...(tags[gate.key]||[])];
+     if(gate.key==="country")values.push(...(p.state||[]));
+     if(gate.key==="epoch")values.push(...(p.epoch||[]));
+     if(gate.key==="profession")values.push(...(p.activity||[]));
+     if(gate.key==="events")values.push(...(p.events||[]));
+     return values.some(v=>gate.values.some(w=>normalizedTag(v)===normalizedTag(w)));
+   };
+   // Обидві картки запитання мають належати до пулу, який пропустили ворота.
+   list=list.filter(q=>eligible(q.correct)&&eligible(q.other));
+ }
  return list;
 }
 function nextQuestion(){
@@ -362,7 +377,7 @@ async function endGame(){$("round").classList.add("hidden");$("gameover").classL
 const professionCategories=["Державні діячі","Письменники","Митці","Воєначальники","Рандом"];
 function getProfessionCategories(){return [...new Set([...professionCategories.filter(x=>x!=="Рандом"),...primaryValues("profession")])].concat("Рандом")}
 const epochs=["Русь","Роздробленість","ВКЛ та Річ Посполита","Гетьманщина","18-19 століття","Національно-визвольні змагання","1922-1939","Друга світова","Повоєнний період","Шістдесятники","Незалежна Україна"];
-function getEpochCategories(){return [...new Set([...epochs,...primaryValues("epoch"),...primaryValues("century")])]}
+function getEpochCategories(){return [...new Set([...epochs,...primaryValues("epoch"),...primaryValues("century")])].filter(x=>x!=="Рандом")}
 const eventGroups=["Козацька доба","Національно-визвольні змагання","Повоєнний період","Незалежна Україна","Рандом"];
 function closeSetup(){$("setupModal").classList.add("hidden")}
 function modalShell(title,desc,html){const panel=$("setupPanel");$("setupModal").classList.remove("hidden");panel.innerHTML=`<div class="modal-top"><div><h2 id="setupTitle">${title}</h2><p>${desc}</p></div><button class="modal-close" id="closeSetup" aria-label="Закрити">✕</button></div>${html}`;$("closeSetup").addEventListener("click",closeSetup)}
@@ -381,14 +396,14 @@ function renderSetup(m){
  }
 }
 function renderEpochSetup(){
- modalShell("Обери епоху / століття","Варіанти формуються з основних тегів бази та наявних запитань.",'<div class="setup-options">'+getEpochCategories().map(x=>`<button class="secondary" data-epoch="${x}">${x}</button>`).join("")+'</div><button class="secondary setup-back" id="backToTypes">← Назад</button>');
- $("setupPanel").querySelectorAll("[data-epoch]").forEach(b=>b.addEventListener("click",()=>{periodFilterType="epoch";closeSetup();start("period",b.dataset.epoch)}));
+ modalShell("Обери епоху / століття","Варіанти формуються з основних тегів бази та наявних запитань.",'<div class="setup-options">'+[...getEpochCategories(),"Рандом"].map(x=>`<button class="secondary" data-epoch="${x}">${x}</button>`).join("")+'</div><button class="secondary setup-back" id="backToTypes">← Назад</button>');
+ $("setupPanel").querySelectorAll("[data-epoch]").forEach(b=>b.addEventListener("click",()=>{periodFilterType="epoch";closeSetup();start("period",b.dataset.epoch==="Рандом"?null:b.dataset.epoch)}));
  $("setupPanel").querySelector("#backToTypes").addEventListener("click",()=>renderSetup("period"));
 }
 function renderStateSetup(){
  const states=[...new Set([...primaryValues("country"),...Object.values(taggedPeople).flatMap(p=>p.state||[])])].sort((a,b)=>a.localeCompare(b,"uk"));
- modalShell("Обери країну / державу","Список формується з основних тегів та тегів держави.",'<div class="setup-options">'+states.map(x=>`<button class="secondary" data-state="${adminEscape(x)}">${adminEscape(x)}</button>`).join("")+'</div><button class="secondary setup-back" id="backToTypes">← Назад</button>');
- $("setupPanel").querySelectorAll("[data-state]").forEach(b=>b.addEventListener("click",()=>{periodFilterType="country";closeSetup();start("period",b.dataset.state)}));
+ modalShell("Обери країну / державу","Список формується з основних тегів та тегів держави.",'<div class="setup-options">'+[...states,"Рандом"].map(x=>`<button class="secondary" data-state="${adminEscape(x)}">${adminEscape(x)}</button>`).join("")+'</div><button class="secondary setup-back" id="backToTypes">← Назад</button>');
+ $("setupPanel").querySelectorAll("[data-state]").forEach(b=>b.addEventListener("click",()=>{periodFilterType="country";closeSetup();start("period",b.dataset.state==="Рандом"?null:b.dataset.state)}));
  $("setupPanel").querySelector("#backToTypes").addEventListener("click",()=>renderSetup("period"));
 }
 
@@ -416,9 +431,58 @@ let editingPersonId=null,adminRecordType="person",workingPhotos=[];
 function adminEscape(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function recordTypeOf(p){return p?.recordType==="event"?"event":"person"}
 function renderAdmin(){const ids=Object.keys(taggedPeople).filter(id=>recordTypeOf(taggedPeople[id])===adminRecordType).sort((a,b)=>(taggedPeople[a].name||a).localeCompare(taggedPeople[b].name||b,"uk"));const q=($("adminSearch").value||"").trim().toLocaleLowerCase("uk");const found=ids.filter(id=>((taggedPeople[id].name||"")+" "+id).toLocaleLowerCase("uk").includes(q));$("adminList").innerHTML=found.map(id=>`<button type="button" class="admin-person ${editingPersonId===id?"active":""}" data-edit-person="${adminEscape(id)}"><span><b>${adminEscape(taggedPeople[id].name||id)}</b><br><small style="color:var(--muted)">${adminEscape(id)} · ${adminEscape(taggedPeople[id].years||"дату не вказано")}</small></span><span>›</span></button>`).join("")||'<p style="color:var(--muted)">Нічого не знайдено.</p>';$ ("adminList").querySelectorAll("[data-edit-person]").forEach(b=>b.addEventListener("click",()=>loadPersonForm(b.dataset.editPerson)));$("adminPeopleCount").textContent=Object.keys(taggedPeople).length;const log=readAnswerLog(),correct=log.filter(x=>x.correct).length;$("adminAnswersCount").textContent=log.length;$("adminAccuracy").textContent=log.length?Math.round(correct/log.length*100)+"%":"—";document.querySelectorAll("[data-admin-type]").forEach(b=>b.classList.toggle("active",b.dataset.adminType===adminRecordType))}
-function renderGateValues(){const modeId=$("gateMode").value,key=$("gateIndex").value,gate=gameGates[modeId]||{},selected=gate.key===key?(gate.values||[]):[];const values=primaryValues(key);const box=$("gateValues");box.innerHTML=values.map(v=>`<label style="display:flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid #454954;border-radius:9px;background:#14161c"><input type="checkbox" value="${adminEscape(v)}" ${selected.some(x=>normalizedTag(x)===normalizedTag(v))?"checked":""}> <span>#${adminEscape(v)}</span></label>`).join("")||'<span class="admin-tags-help">Для цієї групи індексів поки немає значень у картках.</span>';}
-function renderGateEditor(){if(!$('gateMode'))return;const saved=gameGates[$("gateMode").value];if(saved?.key&&Object.prototype.hasOwnProperty.call(gateIndexLabels,saved.key))$("gateIndex").value=saved.key;renderGateValues();}
-async function saveGameGates(){const modeId=$("gateMode").value,key=$("gateIndex").value,values=[...$("gateValues").querySelectorAll('input[type="checkbox"]:checked')].map(x=>x.value);gameGates[modeId]={key,values};try{localStorage.setItem(GATES_KEY,JSON.stringify(gameGates));if(cloudUser&&cloudAdmin){const {error}=await supabaseClient.from("catalog_items").upsert({id:GATES_CLOUD_ID,record_type:"event",data:{gates:gameGates},updated_by:cloudUser.id,updated_at:new Date().toISOString()},{onConflict:"id"});if(error)throw error;}$("gateMessage").textContent=values.length?`Збережено. Ворота пропускають картки з тегами: ${values.map(x=>"#"+x).join(", ")}.`:`Збережено. Для цієї мінігри обмеження вимкнено.`;}catch(err){$("gateMessage").textContent="Не вдалося зберегти ворота в хмарі: "+err.message;}}
+function gateConfigId(modeId,level2,third){
+ if(!third||third==="Рандом"||modeId==="positive")return null;
+ if(modeId==="period")return `period|${level2||"epoch"}|${third}`;
+ return `${modeId}|${third}`;
+}
+function gateThirdOptions(){
+ const m=$("gateMode").value;
+ if(m==="profession")return getProfessionCategories();
+ if(m==="period"){
+  const level=$("gateLevel2").value;
+  if(level==="country")return [...new Set([...primaryValues("country"),...Object.values(taggedPeople).flatMap(p=>p.state||[])])].sort((a,b)=>a.localeCompare(b,"uk")).concat("Рандом");
+  return [...new Set([...getEpochCategories(),"Рандом"])];
+ }
+ if(m==="event")return [...eventGroups];
+ return ["Основний режим"];
+}
+function renderGateValues(){
+ const modeId=$("gateMode").value,third=$("gateThird").value,level2=modeId==="period"?$("gateLevel2").value:null;
+ const gateId=gateConfigId(modeId,level2,third),gate=gateId?gameGates[gateId]||{}:{},key=$("gateIndex").value;
+ const selected=gate.key===key?(gate.values||[]):[],values=primaryValues(key),box=$("gateValues");
+ box.innerHTML=values.map(v=>`<label style="display:flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid #454954;border-radius:9px;background:#14161c"><input type="checkbox" value="${adminEscape(v)}" ${selected.some(x=>normalizedTag(x)===normalizedTag(v))?"checked":""}> <span>#${adminEscape(v)}</span></label>`).join("")||'<span class="admin-tags-help">Для цієї групи індексів поки немає значень у картках.</span>';
+ if(!gateId)$("gateMessage").textContent="Для режиму «Рандом» окремі ворота не застосовуються.";
+ else $("gateMessage").textContent="";
+}
+function renderGateEditor(){
+ if(!$("gateMode"))return;
+ const modeId=$("gateMode").value,wrap=$("gateLevel2Wrap");
+ wrap.style.display=modeId==="period"?"block":"none";
+ const options=gateThirdOptions(),select=$("gateThird"),previous=select.value;
+ select.innerHTML=options.map(x=>`<option value="${adminEscape(x)}">${adminEscape(x)}</option>`).join("");
+ if(options.includes(previous))select.value=previous;
+ else if(modeId==="profession")select.value=options.includes("Поет")?"Поет":(options[0]||"");
+ else select.selectedIndex=0;
+ const gateId=gateConfigId(modeId,modeId==="period"?$("gateLevel2").value:null,select.value),saved=gateId?gameGates[gateId]:null;
+ if(saved?.key&&Object.prototype.hasOwnProperty.call(gateIndexLabels,saved.key))$("gateIndex").value=saved.key;
+ renderGateValues();
+}
+async function saveGameGates(){
+ const modeId=$("gateMode").value,level2=modeId==="period"?$("gateLevel2").value:null,third=$("gateThird").value;
+ const gateId=gateConfigId(modeId,level2,third),key=$("gateIndex").value;
+ const values=[...$("gateValues").querySelectorAll('input[type="checkbox"]:checked')].map(x=>x.value);
+ if(!gateId){$("gateMessage").textContent="Для режиму «Рандом» ворота не налаштовуються.";return;}
+ gameGates[gateId]={key,values};
+ try{
+  localStorage.setItem(GATES_KEY,JSON.stringify(gameGates));
+  if(cloudUser&&cloudAdmin){
+   const {error}=await supabaseClient.from("catalog_items").upsert({id:GATES_CLOUD_ID,record_type:"event",data:{gates:gameGates},updated_by:cloudUser.id,updated_at:new Date().toISOString()},{onConflict:"id"});
+   if(error)throw error;
+  }
+  $("gateMessage").textContent=values.length?`Збережено ворота для «${third}». Картка проходить, якщо має хоча б один із тегів: ${values.map(x=>"#"+x).join(", ")}.`:`Збережено. Для режиму «${third}» обмеження вимкнено.`;
+ }catch(err){$("gateMessage").textContent="Не вдалося зберегти ворота в хмарі: "+err.message;}
+}
 function field(id,v){$(id).value=v||""}
 function renderPhotoPreview(){const el=$("photoPreview");el.innerHTML=workingPhotos.map((src,i)=>`<div class="photo-item"><img src="${src}" alt="Фото ${i+1}"><button type="button" data-remove-photo="${i}" title="Видалити фото">×</button></div>`).join("")||'<span class="admin-tags-help">Фото ще не додано.</span>';el.querySelectorAll("[data-remove-photo]").forEach(b=>b.addEventListener("click",()=>{workingPhotos.splice(Number(b.dataset.removePhoto),1);renderPhotoPreview()}))}
 function showPrimaryTags(tags={},legacy={}){field("primaryCentury",displayIndexes([...(tags.century||[])]));field("primaryCountry",displayIndexes([...new Set([...(tags.country||[]),...(legacy.state||[])])]));field("primaryProfession",displayIndexes([...new Set([...(tags.profession||[]),...(legacy.activity||[])])]));field("primaryEpoch",displayIndexes([...new Set([...(tags.epoch||[]),...(legacy.epoch||[])])]));field("primaryEvents",displayIndexes([...new Set([...(tags.events||[]),...(legacy.events||[])])]));}
@@ -445,7 +509,7 @@ $("cloudSignup").addEventListener("click",async()=>{const email=$("cloudEmail").
 $("cloudLogout").addEventListener("click",async()=>{await supabaseClient.auth.signOut();await refreshCloudAuth();});
 $("cloudSyncLocal").addEventListener("click",async()=>{if(!confirm("Завантажити всі поточні записи цього браузера в спільний каталог Supabase? Записи з однаковим ID у хмарі буде оновлено."))return;try{$("cloudStatus").textContent="Переносимо каталог і фотографії…";const n=await syncCatalogToCloud();await loadCloudCatalog();renderAdmin();$("cloudStatus").textContent=`Успішно перенесено записів: ${n}. Каталог тепер спільний для всіх відвідувачів.`;}catch(err){$("cloudStatus").textContent="Помилка перенесення: "+err.message;}});
 supabaseClient.auth.onAuthStateChange(()=>{setTimeout(()=>refreshCloudAuth().catch(console.error),0)});
-$("openAccount").addEventListener("click",openAccount);$("closeAccount").addEventListener("click",closeAccount);$("accountModal").addEventListener("click",e=>{if(e.target===$("accountModal"))closeAccount()});$("openAdmin").addEventListener("click",openAdmin);$("closeAdmin").addEventListener("click",closeAdmin);$("adminModal").addEventListener("click",e=>{if(e.target===$("adminModal"))closeAdmin()});$("adminSearch").addEventListener("input",renderAdmin);$("gateMode").addEventListener("change",renderGateEditor);$("gateIndex").addEventListener("change",renderGateValues);$("saveGates").addEventListener("click",saveGameGates);$("clearGate").addEventListener("click",()=>{$("gateValues").querySelectorAll("input[type=checkbox]").forEach(x=>x.checked=false);});$("newPerson").addEventListener("click",clearPersonForm);$("cancelEdit").addEventListener("click",clearPersonForm);
+$("openAccount").addEventListener("click",openAccount);$("closeAccount").addEventListener("click",closeAccount);$("accountModal").addEventListener("click",e=>{if(e.target===$("accountModal"))closeAccount()});$("openAdmin").addEventListener("click",openAdmin);$("closeAdmin").addEventListener("click",closeAdmin);$("adminModal").addEventListener("click",e=>{if(e.target===$("adminModal"))closeAdmin()});$("adminSearch").addEventListener("input",renderAdmin);$("gateMode").addEventListener("change",renderGateEditor);$("gateLevel2").addEventListener("change",renderGateEditor);$("gateThird").addEventListener("change",renderGateEditor);$("gateIndex").addEventListener("change",renderGateValues);$("saveGates").addEventListener("click",saveGameGates);$("clearGate").addEventListener("click",()=>{$("gateValues").querySelectorAll("input[type=checkbox]").forEach(x=>x.checked=false);});$("newPerson").addEventListener("click",clearPersonForm);$("cancelEdit").addEventListener("click",clearPersonForm);
 document.querySelectorAll("[data-admin-type]").forEach(b=>b.addEventListener("click",()=>{adminRecordType=b.dataset.adminType;clearPersonForm()}));$("personType").addEventListener("change",()=>{adminRecordType=$("personType").value;renderAdmin()});
 function imageToDataUrl(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(new Error("Не вдалося прочитати фото."));reader.onload=()=>{const img=new Image();img.onerror=()=>reject(new Error("Цей файл не вдалося відкрити як зображення."));img.onload=()=>{const max=900,scale=Math.min(1,max/Math.max(img.width,img.height)),canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);resolve(canvas.toDataURL("image/jpeg",.72))};img.src=reader.result};reader.readAsDataURL(file)})}
 $("personPhotosUpload").addEventListener("change",async e=>{const files=[...(e.target.files||[])];try{for(const file of files){if(!file.type.startsWith("image/"))continue;workingPhotos.push(await imageToDataUrl(file))}renderPhotoPreview();$("adminMessage").textContent=`Додано фото. Усього: ${workingPhotos.length}.`}catch(err){$("adminMessage").textContent=err.message}finally{e.target.value=""}});
