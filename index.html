@@ -222,7 +222,7 @@ const DEMO_QUESTIONS=[
 ];
 function ensureDemoQuestions(){
  let changed=false;
- for(const q of DEMO_QUESTIONS){if(!people[q.correct]||!people[q.other])continue;const existing=professionQuestions.find(x=>x.id===q.id);if(!existing){professionQuestions.push({...q});changed=true}else if(q.id==="demo-profession-biography"){if(existing.q!==q.q||existing.kind!=="biography"){Object.assign(existing,q);changed=true}}else if(q.game==="profession"&&!existing.kind){Object.assign(existing,q);changed=true}}
+ for(const q of DEMO_QUESTIONS){if(!people[q.correct]||!people[q.other])continue;const existing=professionQuestions.find(x=>x.id===q.id);if(!existing){professionQuestions.push({...q});changed=true}else if(q.id==="demo-profession-biography"){if(existing.q!==q.q||existing.why!==q.why||existing.kind!=="biography"||existing.a!==q.a||existing.b!==q.b||existing.correct!==q.correct){Object.assign(existing,q);changed=true}}else if(q.game==="profession"&&!existing.kind){Object.assign(existing,q);changed=true}}
  if(changed){try{localStorage.setItem(QUESTIONS_KEY,JSON.stringify(professionQuestions))}catch(e){}}
 }
 
@@ -258,7 +258,7 @@ async function syncCatalogToCloud(){
 }
 
 let peopleReady=Promise.resolve();
-function inferredTags(p){const f=(p.facts||[]).join(" ").toLocaleLowerCase("uk"),n=(p.name||"").toLocaleLowerCase("uk"),all=f+" "+n;const epoch=[],state=[],activity=[],events=[];
+function inferredTags(p){const f=(p.facts||[]).join(" ").toLocaleLowerCase("uk"),n=(p.name||"").toLocaleLowerCase("uk"),note=String(p.note||"").toLocaleLowerCase("uk"),all=f+" "+n+" "+note;const epoch=[],state=[],activity=[],events=[];
  if(/русь|київськ|хрещення русі|x століт|xi століт/.test(all))epoch.push("Русь");
  if(/гетьман|козак|козацьк|мазеп|дорошенк|сагайдачн|берестечк|полтавськ битв|переяславськ/.test(all))epoch.push("Гетьманщина");
  if(/руїна/.test(all))epoch.push("ВКЛ та Річ Посполита","Гетьманщина");
@@ -267,11 +267,42 @@ function inferredTags(p){const f=(p.facts||[]).join(" ").toLocaleLowerCase("uk")
  if(/радянськ|срср|шістдесят|чорнобиль|дисидент|рух опору/.test(all))epoch.push("Повоєнний період");
  if(/незалежна україна|1991|чорновіл/.test(all))epoch.push("Незалежна Україна");
  if(/російськ імпер|катерина ii/.test(all))state.push("Російська імперія");if(/срср|радянськ/.test(all))state.push("СРСР");if(/русь|київськ/.test(all))state.push("Русь");if(/унр|українськ держава|центральн рада/.test(all))state.push("Українська держава / УНР");if(/гетьман|козак/.test(all))state.push("Гетьманщина");
- if(/письменник|поет|перекладач|літератур|автор/.test(all))activity.push("письменник","поет");if(/художник|художниц|митець|монументал/.test(all))activity.push("митець","художник");if(/гетьман|політик|державний діяч|князь|правитель|імператриц/.test(all))activity.push("державний діяч");if(/військов|полковод|генерал|битв|гетьман|козацьк/.test(all))activity.push("воєначальник");if(/історик|мислитель|філософ|учений|наук/.test(all))activity.push("науковець / мислитель");if(/правозахис|дисидент/.test(all))activity.push("правозахисник","дисидент");
+ if(/письменник|письменниц|поет|поетес|перекладач|літератур|драматург|прозаїк|публіцист|есеїст|автор/.test(all))activity.push("письменник","поет");
+ if(/художник|художниц|митець|монументал|живопис|скульптор/.test(all))activity.push("митець","художник");
+ if(/гетьман|політик|державний діяч|князь|правитель|імператриц|президент|голова центральної ради/.test(all))activity.push("державний діяч");
+ if(/військов|полковод|генерал|командувач|військ.*керів|гетьман|козацьк/.test(all))activity.push("воєначальник");
+ if(/історик|мислитель|філософ|учений|наук|природознавець|педагог|дослідник|академік/.test(all))activity.push("науковець / мислитель");
+ if(/правозахис|дисидент/.test(all))activity.push("правозахисник","дисидент");
+ if(/митрополит|церковний діяч|священн/.test(all))activity.push("церковний діяч");
+ if(/композитор|музикант/.test(all))activity.push("композитор");
+ if(/мандрівник|першовідкривач|дослідник нових земель/.test(all))activity.push("мандрівник та першовідкривач");
+ if(/винахідник|інженер|конструктор/.test(all))activity.push("винахідник");
  if(/полтавськ битв|північна війна/.test(all))events.push("Полтавська битва","Північна війна");if(/хотин/.test(all))events.push("Хотинська битва");if(/чорнобиль/.test(all))events.push("Аварія на Чорнобильській АЕС");if(/унр|центральн рада|українськ революц/.test(all))events.push("Українська революція");
  const uniq=a=>[...new Set(a)];return {epoch:uniq(epoch),state:uniq(state),activity:uniq(activity),events:uniq(events),photos:[],recordType:"person",primaryTags:{century:[],country:uniq(state),profession:uniq(activity),epoch:uniq(epoch),category:[]}};}
-Object.keys(people).forEach(id=>{const p=people[id],saved=taggedPeople[id]||{},guess=inferredTags(p),primary={...guess.primaryTags,...(saved.primaryTags||{})};if(!primary.century?.length){const y=String(p.years||"").match(/(?:бл\.\s*)?(\d{3,4})/);if(y){const n=Number(y[1]);primary.century=[Math.floor((n-1)/100)+1+" століття"]}}taggedPeople[id]={name:p.name,years:p.years,emoji:p.emoji||"?",facts:p.facts||[],note:p.note||"",...guess,...saved,recordType:saved.recordType||"person",photos:Array.isArray(saved.photos)?saved.photos:[],primaryTags:primary};people[id]={...p,...taggedPeople[id],facts:taggedPeople[id].facts||p.facts||[]}});
+Object.keys(people).forEach(id=>{const p=people[id],saved=taggedPeople[id]||{},guess=inferredTags({...p,...saved,note:saved.note||p.note}),primary={...guess.primaryTags,...(saved.primaryTags||{})};if(!primary.century?.length){const y=String(p.years||"").match(/(?:бл\.\s*)?(\d{3,4})/);if(y){const n=Number(y[1]);primary.century=[Math.floor((n-1)/100)+1+" століття"]}}taggedPeople[id]={name:p.name,years:p.years,emoji:p.emoji||"?",facts:p.facts||[],note:p.note||"",...guess,...saved,recordType:saved.recordType||"person",photos:Array.isArray(saved.photos)?saved.photos:[],primaryTags:primary};people[id]={...p,...taggedPeople[id],facts:taggedPeople[id].facts||p.facts||[]}});
+function backfillMissingProfessionTags(){
+ const changed=[];
+ for(const [id,p] of Object.entries(taggedPeople)){
+  if(recordTypeOf(p)!=="person")continue;
+  p.primaryTags=p.primaryTags||{};
+  const inferred=inferredTags(p).primaryTags.profession||[];
+  const existing=Array.isArray(p.primaryTags.profession)?p.primaryTags.profession:[];
+  const merged=[...new Set([...existing,...inferred])];
+  if(merged.length!==existing.length){p.primaryTags.profession=merged;changed.push(id)}
+  if(people[id])people[id].primaryTags=p.primaryTags;
+ }
+ return changed;
+}
+async function saveProfessionTagBackfill(ids){
+ if(!ids.length||!cloudAdmin)return 0;
+ const rows=ids.map(id=>{const data=taggedPeople[id];return {id,record_type:recordTypeOf(data)==="event"?"event":"person",data,updated_by:cloudUser.id,updated_at:new Date().toISOString()}});
+ const {error}=await supabaseClient.from("catalog_items").upsert(rows,{onConflict:"id"});
+ if(error)throw error;
+ try{localStorage.setItem(PEOPLE_DB_KEY,JSON.stringify(taggedPeople))}catch(e){}
+ return rows.length;
+}
 Object.values(taggedPeople).forEach(p=>{p.primaryTags=p.primaryTags||{};p.primaryTags={century:p.primaryTags.century||[],country:[...new Set([...(p.primaryTags.country||[]),...(p.state||[])])],profession:[...new Set([...(p.primaryTags.profession||[]),...(p.activity||[])])],epoch:[...new Set([...(p.primaryTags.epoch||[]),...(p.epoch||[])])],lifeYears:p.primaryTags.lifeYears||((recordTypeOf(p)==="person"&&p.years)?[String(p.years).trim().replace(/[–—]/g,"-")]:[]),events:[...new Set([...(p.primaryTags.events||[]),...(p.events||[])])],author:Array.isArray(p.primaryTags.author)?p.primaryTags.author:(Array.isArray(p.author)?p.author:[])};if(recordTypeOf(p)==="person"&&!p.lifeYears)p.lifeYears=parseLifeYears(p.years||"")});
+backfillMissingProfessionTags();
 peopleReady=restorePeople();
 refreshCloudAuth().catch(err=>console.warn("Supabase auth:",err));
 const bank = {
@@ -371,7 +402,8 @@ function authorWorksFor(id){
  return [...new Set(works.map(x=>String(x||"").trim()).filter(Boolean))];
 }
 function generatedAuthorQuestions(filter){
- const ids=Object.keys(taggedPeople).filter(id=>recordTypeOf(taggedPeople[id])==="person"&&professionTagsFor(id).length);
+ backfillMissingProfessionTags();
+  const ids=Object.keys(taggedPeople).filter(id=>recordTypeOf(taggedPeople[id])==="person");
  const generated=[];
  for(const authorId of ids){
   const works=authorWorksFor(authorId),authorProfessions=professionTagsFor(authorId);
@@ -706,7 +738,7 @@ async function refreshCloudAuth(){
  $("openAdmin").classList.toggle("hidden",!cloudAdmin);
  $("accountIntro").textContent=cloudUser?"Твій акаунт підключено. Можеш вийти з нього в будь-який момент.":"Увійди або створи акаунт. Грати можна і без реєстрації.";
  $("adminEditor").classList.toggle("hidden",!cloudAdmin);$("cloudSyncLocal").classList.toggle("hidden",!cloudAdmin);
- if(cloudAdmin){await loadCloudCatalog();ensureDemoQuestions();renderAdmin();renderGateEditor();renderEpochAdmin();renderStateAdmin();renderQuestionAdmin();}
+ if(cloudAdmin){await loadCloudCatalog();const changedTags=backfillMissingProfessionTags();if(changedTags.length){try{await saveProfessionTagBackfill(changedTags);$("cloudStatus").textContent+=` Автоматично доповнено теги фаху в ${changedTags.length} картках.`;}catch(tagErr){console.warn("Не вдалося синхронізувати доповнені теги:",tagErr);$("cloudStatus").textContent+=" Не вдалося зберегти автоматично доповнені теги: "+tagErr.message;}}ensureDemoQuestions();renderAdmin();renderGateEditor();renderEpochAdmin();renderStateAdmin();renderQuestionAdmin();}
  return cloudAdmin;
 }
 function requireAdmin(){if(!cloudUser||!cloudAdmin)throw new Error("Збереження доступне лише після входу під обліковим записом адміністратора.");}
