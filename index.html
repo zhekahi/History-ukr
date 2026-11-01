@@ -203,11 +203,16 @@ async function loadCloudCatalog(){
    if(questionsRow&&Array.isArray(questionsRow.data?.questions)){professionQuestions=questionsRow.data.questions;try{localStorage.setItem(QUESTIONS_KEY,JSON.stringify(professionQuestions))}catch(e){}}
    if(epochsRow&&Array.isArray(epochsRow.data?.epochs)){historicalEpochs=epochsRow.data.epochs;try{localStorage.setItem(EPOCHS_KEY,JSON.stringify(historicalEpochs))}catch(e){}}
    if(gatesRow){gameGates=gatesRow.data?.gates&&typeof gatesRow.data.gates==="object"?gatesRow.data.gates:{};try{localStorage.setItem(GATES_KEY,JSON.stringify(gameGates))}catch(e){}}
-   // Службовий запис воріт не є карткою. Якщо в хмарі ще немає карток,
-   // не очищаємо вбудований або локальний каталог.
+   // Хмарний каталог доповнює вбудовану базу: оновлює картки з такими самими ID
+   // та додає нові, але не стирає решту вбудованих постатей.
    if(catalogRows.length){
-    taggedPeople={};Object.keys(people).forEach(id=>delete people[id]);
-    for(const row of catalogRows){const p={...(row.data||{}),recordType:row.record_type,photos:Array.isArray(row.data?.photos)?row.data.photos:[]};p.primaryTags=p.primaryTags||{};p.primaryTags.lifeYears=p.primaryTags.lifeYears||((p.recordType!=="event"&&p.years)?[String(p.years).trim().replace(/[–—]/g,"-")]:[]);taggedPeople[row.id]=p;people[row.id]={...p,facts:p.facts||[]};}
+    for(const row of catalogRows){
+     const p={...(row.data||{}),recordType:row.record_type,photos:Array.isArray(row.data?.photos)?row.data.photos:[]};
+     p.primaryTags=p.primaryTags||{};
+     p.primaryTags.lifeYears=p.primaryTags.lifeYears||((p.recordType!=="event"&&p.years)?[String(p.years).trim().replace(/[–—]/g,"-")]:[]);
+     taggedPeople[row.id]=p;
+     people[row.id]={...(people[row.id]||{}),...p,facts:p.facts||people[row.id]?.facts||[]};
+    }
     return true;
    }
    return false;
@@ -228,7 +233,14 @@ function ensureDemoQuestions(){
 
 async function restorePeople(){
  try{const db=await openPeopleDB();let saved;try{saved=await new Promise((resolve,reject)=>{const req=db.transaction(PEOPLE_IDB_STORE,"readonly").objectStore(PEOPLE_IDB_STORE).get("people");req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}finally{db.close()}
-  if(saved&&typeof saved==="object"){taggedPeople=saved;Object.keys(people).forEach(id=>delete people[id]);Object.entries(taggedPeople).forEach(([id,p])=>people[id]={...p,facts:p.facts||[]});}
+  if(saved&&typeof saved==="object"){
+   // Локальна база може містити лише відредаговані/додані картки.
+   // Об'єднуємо її з вбудованим каталогом замість повної заміни.
+   const merged={...taggedPeople};
+   Object.entries(saved).forEach(([id,p])=>{merged[id]={...(merged[id]||{}),...(p||{}),primaryTags:{...(merged[id]?.primaryTags||{}),...(p?.primaryTags||{})}}});
+   taggedPeople=merged;
+   Object.entries(taggedPeople).forEach(([id,p])=>people[id]={...(people[id]||{}),...p,facts:p.facts||people[id]?.facts||[]});
+  }
   else if(Object.values(taggedPeople).some(p=>(p.photos||[]).some(x=>typeof x==="string"&&x.startsWith("data:image/")))) await persistPeople();
  }catch(err){console.warn("Фото IndexedDB:",err);}
  try{localCatalogCache=JSON.parse(JSON.stringify(taggedPeople));}catch(e){localCatalogCache={...taggedPeople};}
@@ -366,7 +378,7 @@ const labels={positive:"Хто з них",profession:"Хто за фахом?",p
 const whoAmongCategories=["Письменники","Художники","Полководці","Державні діячі","Позитивний персонаж","Винахідники","Науковці","Мандрівники та першовідкривачі","Композитори"] ;
 const storage={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 let professionQuestionMode=storage.get("history-quiz-profession-question-mode")!=="0";
-let mode="positive", rule="one", streak=0, score=0, roundCount=0, losses=0, best=0, current=null, answered=false, used=[], activeFilter=null, periodFilterType="epoch", showNames=true;
+let mode="positive", rule="one", streak=0, score=0, roundCount=0, losses=0, best=0, current=null, answered=false, used=[], recentPeople=[], activeFilter=null, periodFilterType="epoch", showNames=true;
 const $=id=>document.getElementById(id);
 const ruleNames={one:"До першої поразки",three:"До 3 поразок",free:"Грати без штрафу"};
 const bestKey=()=>`history-quiz-best-${mode}-${rule}-names-${showNames?"on":"off"}`;
@@ -377,7 +389,7 @@ function updateStats(){best=readBest();$("streak").textContent=streak;$("score")
 $("best").textContent=best;
 function shuffle(arr){return [...arr].sort(()=>Math.random()-.5)}
 function start(m=mode, filter=null){
- mode=m;activeFilter=filter;streak=0;score=0;roundCount=0;losses=0;used=[];best=readBest();updateStats();
+ mode=m;activeFilter=filter;streak=0;score=0;roundCount=0;losses=0;used=[];recentPeople=[];best=readBest();updateStats();
  $("modeLabel").textContent=labels[mode]+(filter?" · "+filter:" ");
  $("home").classList.add("hidden");$("game").classList.remove("hidden");$("gameover").classList.add("hidden");$("round").classList.remove("hidden");nextQuestion()
 }
@@ -385,7 +397,7 @@ function canonicalProfession(value){
  const n=String(value||"").toLocaleLowerCase("uk").replace(/[’'`]/g,"").replace(/[^\p{L}\p{N}]+/gu,"");
  const aliases={
   "письменники":"письменник","художники":"художник","державнідіячі":"державнийдіяч",
-  "митці":"митець","воєначальники":"воєначальник","науковці":"науковець",
+  "митці":"митець","воєначальники":"воєначальник","полководці":"полководець","науковці":"науковець",
   "композитори":"композитор","винахідники":"винахідник",
   "мандрівникитапершовідкривачі":"мандрівниктапершовідкривач"
  };
@@ -396,6 +408,35 @@ function professionTagsFor(id){
  return [...new Set([...(Array.isArray(tags.profession)?tags.profession:[]),...(Array.isArray(p.activity)?p.activity:[])].map(x=>String(x).trim()).filter(Boolean))];
 }
 function sameProfession(a,b){return canonicalProfession(a)===canonicalProfession(b)}
+function isWhoAmongCategory(id,category){
+ const tags=professionTagsFor(id).map(canonicalProfession),target=canonicalProfession(category);
+ const aliases={
+  "письменник":["поет","драматург","прозаїк","перекладач"],
+  "художник":["митець","живописець","скульптор"],
+  "полководець":["воєначальник","військовийдіяч","командувач"],
+  "державнийдіяч":["гетьман","політик","державнийдіяч"],
+  "науковець":["історик","філософ","дослідник","учений"]
+ };
+ const accepted=[target,...(aliases[target]||[])];
+ return tags.some(tag=>accepted.some(value=>tag===value||tag.includes(value)||value.includes(tag)));
+}
+function whoAmongOptions(q,excluded=[]){
+ const correct=q.correct,blocked=new Set(excluded);
+ const pool=Object.keys(taggedPeople).filter(id=>recordTypeOf(taggedPeople[id])==="person"&&id!==correct);
+ let distractors=pool;
+ if(activeFilter==="Позитивний персонаж"){
+  distractors=[q.other,...["stalin","catherine"].filter(id=>id!==q.other&&people[id])].filter(id=>id&&id!==correct&&pool.includes(id));
+ }else if(activeFilter){
+  const outside=pool.filter(id=>!isWhoAmongCategory(id,activeFilter));
+  if(outside.length)distractors=outside;
+ }
+ // Спочатку добираємо картку, якої не було в останніх п'яти раундах.
+ let fresh=distractors.filter(id=>!blocked.has(id));
+ let distractor=(q.other&&fresh.includes(q.other))?q.other:shuffle(fresh)[0];
+ if(!distractor)distractor=(q.other&&distractors.includes(q.other))?q.other:shuffle(distractors)[0];
+ if(!distractor)distractor=shuffle(pool.filter(id=>!blocked.has(id)))[0]||shuffle(pool)[0];
+ return distractor?shuffle([correct,distractor]):[correct];
+}
 function authorWorksFor(id){
  const p=taggedPeople[id]||people[id]||{},tags=p.primaryTags||{};
  const works=Array.isArray(tags.author)?tags.author:(Array.isArray(p.author)?p.author:[]);
@@ -440,6 +481,18 @@ function activeQuestions(){
  let list=mode==="profession"?professionQuestions.filter(q=>q.game==="profession"&&!isAuthorQuestion(q)&&(!activeFilter||normalizedTag(activeFilter)==="випадково"||sameProfession(q.category,activeFilter))).map(q=>({...q,kind:"biography",_key:"admin-q-"+q.id} )):(mode==="positive"&&activeFilter?professionQuestions.filter(q=>q.game==="positive"&&q.category===activeFilter).map(q=>({...q,_key:"admin-q-"+q.id} )):(bank[mode]||[]));
  if(mode==="profession")list.push(...generatedAuthorQuestions(activeFilter));
  if(mode==="positive"&&activeFilter==="Позитивний персонаж"&&!list.length)list=(bank.positive||[]).map(q=>({...q,q:q.q.replace(/^Хто з них\s*/i,"")}));
+ if(mode==="positive"&&activeFilter&&activeFilter!=="Позитивний персонаж"){
+  // Для кожної картки, що відповідає категорії, створюємо окреме запитання.
+  // Це не дає одному демо-запитанню (наприклад, із Шевченком) витіснити решту постатей.
+  const matching=Object.keys(taggedPeople).filter(id=>recordTypeOf(taggedPeople[id])==="person"&&isWhoAmongCategory(id,activeFilter));
+  const distractors=Object.keys(taggedPeople).filter(id=>recordTypeOf(taggedPeople[id])==="person"&&!isWhoAmongCategory(id,activeFilter));
+  matching.forEach(correct=>{
+   if(!distractors.length)return;
+   const other=shuffle(distractors)[0];
+   const key="who-tag-"+normalizedTag(activeFilter)+"-"+correct;
+   if(!list.some(q=>q.correct===correct&&q._key===key))list.push({q:"Хто з цих постатей належить до категорії «"+activeFilter+"»?",correct,other,why:"Категорію визначено за фахом і роллю, зазначеними в індексах картки.",_key:key});
+  });
+ }
  if(mode==="period"&&activeFilter) list=list.filter(q=>{
    if(periodFilterType==="epoch"&&q.epoch===activeFilter)return true;
    return [q.correct,q.other].some(id=>{const p=taggedPeople[id]||people[id]||{};const tags=periodFilterType==="country"?[...(p.primaryTags?.country||[]),...(p.state||[])]:[...(p.primaryTags?.epoch||[]),...(p.epoch||[]),...(p.primaryTags?.century||[])];return tags.some(t=>normalizedTag(t)===normalizedTag(activeFilter))});
@@ -514,9 +567,33 @@ async function nextQuestion(){
  const questionKey=q=>q._key||String(bank[mode].indexOf(q));
  let choices=fullList.filter(q=>!used.includes(questionKey(q)));
  if(!choices.length){used=[];choices=fullList}
- current=choices[Math.floor(Math.random()*choices.length)];used.push(questionKey(current));
- const professionKind=current.kind||(/^\s*(чий|хто\s+написав|хто\s+є\s+автором)/i.test(current.q||"")?"author":"biography");const professionPrompt=professionKind==="author"?"Хто з них є автором\n":"Хто з них\n";$("question").textContent=mode==="positive"?"Хто з них\n"+current.q:mode==="profession"?professionPrompt+professionQuestionBody(current):current.q;$("question").style.whiteSpace=(mode==="positive"||mode==="profession")?"pre-line":"normal";$("subquestion").textContent=mode==="event"?"Обери правильну історичну подію":mode==="positive"?"Знайди постать, яка відповідає зазначеному фаху":mode==="profession"?"Обери правильну постать":"";
- const ids=shuffle([current.correct,current.other]);$("people").innerHTML="";
+ let selected=null,ids=null;
+ if(mode==="positive"){
+  const recentSet=new Set(recentPeople);
+  const prepared=choices.map(q=>({q,options:whoAmongOptions(q,recentPeople)})).filter(x=>x.options.length===2);
+  // Ідеальний варіант: обидві картки відсутні в останніх п'яти раундах.
+  const fresh=prepared.filter(x=>x.options.every(id=>!recentSet.has(id)));
+  const pool=fresh.length?fresh:prepared;
+  if(pool.length){
+   // Якщо свіжих пар немає, обираємо ту, де найменше повторів.
+   const minHits=Math.min(...pool.map(x=>x.options.filter(id=>recentSet.has(id)).length));
+   const leastRepeated=pool.filter(x=>x.options.filter(id=>recentSet.has(id)).length===minHits);
+   selected=leastRepeated[Math.floor(Math.random()*leastRepeated.length)];
+   current=selected.q;ids=selected.options;
+  }
+ }
+ if(!current||!ids){
+  current=choices[Math.floor(Math.random()*choices.length)];
+  ids=mode==="positive"?whoAmongOptions(current,recentPeople):shuffle([current.correct,current.other]);
+ }
+ used.push(questionKey(current));
+ if(mode==="positive"){
+  recentPeople.push(...ids);
+  // Дві картки на раунд × п'ять останніх раундів.
+  if(recentPeople.length>10)recentPeople.splice(0,recentPeople.length-10);
+ }
+ const professionKind=current.kind||(/^\s*(чий|хто\s+написав|хто\s+є\s+автором)/i.test(current.q||"")?"author":"biography");const professionPrompt=professionKind==="author"?"Хто з них є автором\n":"Хто з них\n";$("question").textContent=mode==="positive"?"Хто з них\n"+current.q:mode==="profession"?professionPrompt+professionQuestionBody(current):current.q;$("question").style.whiteSpace=(mode==="positive"||mode==="profession")?"pre-line":"normal";$("subquestion").textContent=mode==="event"?"Обери правильну історичну подію":mode==="positive"?"Обери одну правильну відповідь із двох постатей":mode==="profession"?"Обери правильну постать":"";
+ current.options=ids;$("people").innerHTML="";
  ids.forEach(id=>{const p=people[id],btn=document.createElement("button");btn.className="person";btn.dataset.person=id;const pics=Array.isArray(p.photos)?p.photos:[];const pic=pics.length?pics[Math.floor(Math.random()*pics.length)]:null;btn.innerHTML=`<div class="portrait" aria-hidden="true">${pic?`<img src="${pic}" alt="">`:p.emoji}</div><div class="person-body"><h3 class="person-name ${showNames?"":"hidden"}">${p.name}</h3><p class="person-years ${showNames?"":"hidden"}">${p.years}</p><span class="choose">ОБРАТИ →</span></div>`;btn.addEventListener("click",()=>answer(id,btn));$("people").appendChild(btn)});
 }
 function answer(id,btn){
@@ -585,8 +662,11 @@ function renderProfessionSetup(){
 function renderSetup(m){
  mode=m;
  if(m==="positive"){
-  modalShell("Хто з них","Обери тематичний режим.","");
+  modalShell("Хто з них","Обери тематичний режим або запусти випадкову категорію.","");
   renderChoiceOptions(whoAmongCategories,"who-category",x=>{closeSetup();start("positive",x)},4);
+  const randomButton=document.createElement("button");randomButton.type="button";randomButton.className="secondary";randomButton.textContent="🎲 Випадково";randomButton.style.marginTop="8px";
+  randomButton.addEventListener("click",()=>{const available=whoAmongCategories.filter(category=>category==="Позитивний персонаж"?professionQuestions.some(q=>q.game==="positive"&&q.category===category)||bank.positive.length>0:Object.keys(taggedPeople).some(id=>recordTypeOf(taggedPeople[id])==="person"&&isWhoAmongCategory(id,category)));const pool=available.length?available:whoAmongCategories;const chosen=pool[Math.floor(Math.random()*pool.length)];closeSetup();start("positive",chosen)});
+  $("setupPanel").appendChild(randomButton);
  }else if(m==="profession"){
   modalShell("Хто за фахом?","Обери фах або випадкові запитання. У кожному раунді дві постаті матимуть однаковий фах.","");
   renderProfessionSetup();
