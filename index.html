@@ -518,7 +518,13 @@ document.querySelectorAll("[data-rule]").forEach(b=>b.addEventListener("click",(
   document.querySelectorAll("[data-rule]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
   updateStats();
 }));
-$("back").addEventListener("click",()=>{$("game").classList.add("hidden");$("home").classList.remove("hidden");if(mode==="positive"||mode==="profession"||mode==="period"||mode==="event")renderSetup(mode)});
+$("back").addEventListener("click",()=>{
+  $("game").classList.add("hidden");
+  $("home").classList.remove("hidden");
+  if(mode==="positive"||mode==="period"||mode==="event"){
+    renderSetup(mode);
+  }
+});
 
 $("retry").addEventListener("click",()=>start(mode,activeFilter));$("homeBtn").addEventListener("click",()=>{$("game").classList.add("hidden");$("home").classList.remove("hidden")});
 let editingPersonId=null,adminRecordType="person",workingPhotos=[];
