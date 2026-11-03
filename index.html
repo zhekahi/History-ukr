@@ -35,6 +35,12 @@ button,select{font:inherit}button{cursor:pointer;border:1px solid #514838;border
 .admin-fold-toggle{width:100%;display:flex;justify-content:space-between;align-items:center;text-align:left;background:transparent;color:var(--gold);border:0;padding:4px 0;font-size:18px;font-weight:700}.admin-fold-toggle span{font-size:22px}.admin-fold-content{margin-top:12px}.admin-fold-content.hidden{display:none!important}
 
 .period-autocomplete{position:relative;overflow:visible}.period-suggestions{position:absolute;z-index:80;top:calc(100% + 3px);left:0;right:0;max-height:210px;overflow:auto;background:#20232b;border:1px solid #6c5b3c;border-radius:10px;box-shadow:0 12px 28px #0008;padding:4px}.period-suggestions.hidden{display:none!important}.period-suggestion{display:block;width:100%;text-align:left;background:transparent;color:var(--text);border:0;border-radius:7px;padding:8px 10px;font-weight:500}.period-suggestion:hover,.period-suggestion:focus{background:#34302a;color:var(--gold);transform:none}
+
+/* Admin readability: use light gold instead of low-contrast dark gold. */
+#adminModal .admin-fold-toggle, #adminModal .admin-section-head h3, #adminModal .epoch-admin-item b, #adminModal .admin-home-card strong, #adminModal .admin-form button:not(.secondary) { color:#f0c978; }
+#adminModal .period-suggestions { z-index:10020; }
+#adminModal .period-suggestion { color:var(--text,#eee); }
+
 </style>
 </head>
 <body>
@@ -544,11 +550,30 @@ function activeQuestions(){
   const inSelectedArea=id=>key==="epoch"?(activeFilter?hasTag(id,"epoch",activeFilter)||adjacentEpochs(activeFilter).some(n=>hasTag(id,"epoch",n)):true):(activeFilter?hasTag(id,"country",activeFilter):true);
   const isMainArea=id=>key==="epoch"?(activeFilter?hasTag(id,"epoch",activeFilter):true):(activeFilter?hasTag(id,"country",activeFilter):true);
   const isNeighbor=id=>key==="epoch"&&activeFilter?adjacentEpochs(activeFilter).some(n=>hasTag(id,"epoch",n)):key==="country"&&activeFilter?!hasTag(id,"country",activeFilter):false;
-  const adminQuestions=periodQuestions.filter(q=>{const tags=[...(q.countries||[]),...(q.epochs||[])];return !activeFilter||tags.some(t=>normalizedTag(t)===normalizedTag(activeFilter))});
-  // Якщо адміністратор створив питання для обраного тегу, воно замінює випадкові
-  // загальні запитання — не показуємо конкуренцію зі старою автоматичною генерацією.
+  // Відбираємо питання саме за тим індексом, який гравець обрав у грі.
+  // Тег відповіді визначає правильну постать, навіть якщо її картка не має
+  // тотожного тегу держави (наприклад, «Російська імперія» vs «Україна»).
+  const adminQuestions=periodQuestions.filter(q=>{
+   const selectedTags=key==="country"?(q.countries||[]):(q.epochs||[]);
+   return !activeFilter||selectedTags.some(t=>normalizedTag(t)===normalizedTag(activeFilter));
+  });
   if(adminQuestions.length)generated.length=0;
-  for(const q of adminQuestions){const correctIds=ids.filter(id=>isMainArea(id)&&(q.answers||[]).some(a=>matchesAnswer(id,a)));let distractors=ids.filter(id=>inSelectedArea(id)&&!correctIds.includes(id));if(key==="epoch"&&activeFilter){const neighborPool=ids.filter(id=>isNeighbor(id)&&!correctIds.includes(id));if(neighborPool.length)distractors=neighborPool;else if(!distractors.length)distractors=ids.filter(id=>!correctIds.includes(id));}for(const correct of correctIds){const other=shuffle(distractors).find(id=>id!==correct);if(other)generated.push({q:q.q,correct,other,why:"Відповідь відповідає заданому тегу відповіді; правильна постать належить до обраної епохи/держави, а інша — до сусіднього періоду або запасного пулу карток.",_key:"period-admin-"+q.id+"-"+correct+"-"+other})}}
+  for(const q of adminQuestions){
+   const correctIds=ids.filter(id=>(q.answers||[]).some(a=>matchesAnswer(id,a)));
+   if(!correctIds.length)continue;
+   let distractors=ids.filter(id=>!correctIds.includes(id));
+   if(key==="epoch"&&activeFilter){
+    const neighborPool=ids.filter(id=>isNeighbor(id)&&!correctIds.includes(id));
+    if(neighborPool.length)distractors=neighborPool;
+   }else if(key==="country"&&activeFilter){
+    const outsidePool=ids.filter(id=>!hasTag(id,"country",activeFilter)&&!correctIds.includes(id));
+    if(outsidePool.length)distractors=outsidePool;
+   }
+   for(const correct of correctIds){
+    const other=shuffle(distractors).find(id=>id!==correct);
+    if(other)generated.push({q:q.q,correct,other,why:"Правильну постать визначено за тегами відповіді, заданими в редакторі питання.",_key:"period-admin-"+q.id+"-"+correct+"-"+other});
+   }
+  }
   return generated;
  }
  const isAuthorQuestion=q=>q.kind==="author"||(/^\s*(чий|хто\s+написав|хто\s+є\s+автором)/i.test(q.q||""));
@@ -622,7 +647,7 @@ function activeQuestions(){
      return values.some(v=>gate.values.some(w=>normalizedTag(v)===normalizedTag(w)));
    };
    // Обидві картки запитання мають належати до пулу, який пропустили ворота.
-   list=list.filter(q=>eligible(q.correct)&&eligible(q.other));
+   list=list.filter(q=>String(q._key||"").startsWith("period-admin-")||(eligible(q.correct)&&eligible(q.other)));
  }
  return list;
 }
