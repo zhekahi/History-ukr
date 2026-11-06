@@ -43,6 +43,33 @@ button,select{font:inherit}button{cursor:pointer;border:1px solid #514838;border
 #adminModal .period-suggestion { color:var(--text,#eee); }
 
 .admin-main-tabs{margin:14px 0}.admin-main-tabs button{padding:10px 16px}.question-catalog-tabs{margin:12px 0}.question-catalog-tabs button{padding:8px 13px}
+
+/* Admin question catalogs: clear two-column editor and accessible contrast */
+#adminPage-questions #adminCatalogsPanel,
+#adminPage-questions #adminQuestionsPanel{width:100%;min-width:0}
+#adminPage-questions .admin-fold-content{display:grid;grid-template-columns:minmax(0,0.9fr) minmax(0,1.1fr);gap:12px;align-items:start}
+#adminPage-questions .admin-fold-content.hidden{display:none}
+#adminPage-questions .admin-fold-content>p:first-child,
+#adminPage-questions .admin-fold-content>.field,
+#adminPage-questions .admin-fold-content>.admin-tags-help{grid-column:1/-1}
+#adminPage-questions .admin-fold-content>.epoch-admin-list{grid-column:1;grid-row:auto;min-width:0;max-height:58vh;overflow:auto;padding-right:3px}
+#adminPage-questions .admin-fold-content>form.admin-form{grid-column:2;grid-row:auto;min-width:0;margin:0;padding:14px;background:#20232b;border:1px solid #4b5260;border-radius:12px}
+#adminPage-questions .epoch-admin-item{grid-template-columns:minmax(0,1fr) auto;background:#20232b;border-color:#4b5260;color:#f6f0e4;text-align:left;width:100%;min-width:0}
+#adminPage-questions .epoch-admin-item span{min-width:0;overflow-wrap:anywhere}
+#adminPage-questions .epoch-admin-item b{display:block;color:#f6f0e4;line-height:1.4}
+#adminPage-questions .epoch-admin-item small{display:block;color:#c9c6bf;line-height:1.45;white-space:normal;overflow-wrap:anywhere}
+#adminPage-questions .epoch-admin-item span:last-child{color:#f0cc83;font-weight:700;white-space:nowrap}
+#adminPage-questions input,#adminPage-questions textarea,#adminPage-questions select{background:#11151c!important;color:#f7f3e9!important;border-color:#596171!important}
+#adminPage-questions input::placeholder,#adminPage-questions textarea::placeholder{color:#aeb5c2!important;opacity:1}
+#adminPage-questions label{color:#f0cc83}
+#adminPage-questions .admin-tags-help{color:#c5c4c1}
+#adminPage-questions .admin-import-box{background:#20232b!important;border-color:#596171!important;color:#f6f0e4}
+#adminPage-questions .admin-import-box b{color:#f0cc83}
+#adminPage-questions .admin-tabs button{color:#f6f0e4}
+#adminPage-questions .admin-tabs button.active{color:#f0cc83;border-color:#f0cc83}
+#adminPage-questions .admin-fold{background:#1d2028!important;border-color:#596171!important}
+@media(max-width:760px){#adminPage-questions .admin-fold-content{grid-template-columns:minmax(0,1fr)}#adminPage-questions .admin-fold-content>.epoch-admin-list,#adminPage-questions .admin-fold-content>form.admin-form{grid-column:1;grid-row:auto}#adminPage-questions .admin-fold-content>form.admin-form{padding:10px}}
+
 </style>
 </head>
 <body>
@@ -950,10 +977,12 @@ function setupAdminSections(){
  home.innerHTML='<button type="button" class="admin-home-card" data-admin-page="stats"><strong>📊 Статистика</strong><span>Показники каталогу та відповідей гравців</span></button><button type="button" class="admin-home-card" data-admin-page="games"><strong>🎮 Мініігри</strong><span>Налаштування мініігор, епох і держав</span></button><button type="button" class="admin-home-card" data-admin-page="questions"><strong>❓ Запитання</strong><span>Окремі каталоги запитань для кожної мінігри</span></button><button type="button" class="admin-home-card" data-admin-page="records"><strong>🧑‍🎨 Персонажі та події</strong><span>Картки, фотографії, описи й індекси</span></button>';
  const stats=document.createElement("section"),games=document.createElement("section"),questionsPage=document.createElement("section"),records=document.createElement("section");
  [[stats,"stats","Статистика"],[games,"games","Мініігри"],[questionsPage,"questions","Запитання"],[records,"records","Персонажі та події"]].forEach(([page,id,title])=>{page.id="adminPage-"+id;page.className="admin-page hidden";const head=document.createElement("div");head.className="admin-section-head";head.innerHTML='<button type="button" class="admin-back">← До розділів</button><h3>'+title+'</h3>';head.querySelector("button").addEventListener("click",showHome);page.appendChild(head);root.appendChild(page)});
- const cloud=$("cloudSyncLocal"),metrics=root.querySelector(":scope > .admin-metrics"),epoch=$("epochAdmin"),gates=root.querySelector(":scope > .gate-admin"),states=$("stateAdmin"),questions=$("questionAdmin"),periodQuestionsSection=$("periodQuestionAdmin"),grid=root.querySelector(":scope > .admin-grid");
+ const cloud=$("cloudSyncLocal"),metrics=root.querySelector(":scope > .admin-metrics"),epoch=$("epochAdmin"),gates=root.querySelector(":scope > .gate-admin"),states=$("stateAdmin"),grid=root.querySelector(":scope > .admin-grid");
+ const mainModeTabs=root.querySelector(":scope > .admin-tabs.admin-main-tabs"),catalogsPanel=$("adminCatalogsPanel"),questionsPanel=$("adminQuestionsPanel");
  [metrics].forEach(n=>{if(n)stats.appendChild(n)});
  [epoch,gates,states].forEach(n=>{if(n)games.appendChild(n)});
- [questions,periodQuestionsSection].forEach(n=>{if(n)questionsPage.appendChild(n)});
+ // The top-level Catalogs/Questions switch and every question sub-control belong only to Questions page.
+ [mainModeTabs,catalogsPanel,questionsPanel].forEach(n=>{if(n)questionsPage.appendChild(n)});
  [cloud,grid].forEach(n=>{if(n)records.appendChild(n)});
  root.insertBefore(home,root.firstChild);
  function showHome(){home.classList.remove("hidden");[stats,games,questionsPage,records].forEach(p=>p.classList.add("hidden"))}
