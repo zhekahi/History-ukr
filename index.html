@@ -111,6 +111,13 @@ button,select{font:inherit}button{cursor:pointer;border:1px solid #514838;border
 <button type="button" class="secondary" data-question-catalog="profession" role="tab" aria-selected="false">Хто за фахом</button>
 <button type="button" class="secondary" data-question-catalog="period" role="tab" aria-selected="false">Епоха та держава</button>
 </div>
+<div class="admin-import-box" style="margin:12px 0;padding:14px;border:1px solid #536078;border-radius:12px;background:#171c25">
+  <b>Масовий імпорт запитань з Excel</b>
+  <p class="admin-tags-help" style="margin:6px 0 10px">Завантаж таблицю .xlsx. Нові питання додадуться до каталогів, повтори будуть пропущені, а наявні записи не перезаписуватимуться.</p>
+  <button type="button" class="secondary" id="importQuestionsExcelBtn">Обрати Excel-файл</button>
+  <input type="file" id="importQuestionsExcelFile" accept=".xlsx,.xls" style="display:none">
+  <div id="importQuestionsExcelMessage" class="admin-tags-help" role="status" style="margin-top:8px"></div>
+</div>
 <section id="questionAdmin" class="admin-fold" style="margin:14px 0;padding:16px;border:1px solid #6c5b3c;border-radius:14px;background:#171920"><button type="button" class="admin-fold-toggle" aria-expanded="false">❓ Каталог запитань «Хто з них» <span>＋</span></button><div class="admin-fold-content hidden"><p class="admin-tags-help">Каталог запитань для обраної мінігри. Перемикай вкладки вище, щоб перейти до іншого каталогу.</p><div class="field" style="margin:10px 0"><label for="questionAdminSearch">Пошук запитання</label><input id="questionAdminSearch" placeholder="Текст, фах, біографія / авторство…" style="width:100%;background:#15171d;color:var(--text);padding:10px;border:1px solid #454954;border-radius:10px"></div><div id="questionAdminList" class="epoch-admin-list"></div><form id="questionForm" class="admin-form"><div class="field"><label for="questionGame">Мінігра</label><select id="questionGame" class="record-type"><option value="positive">Хто з них</option><option value="profession">Хто за фахом?</option></select></div><div class="field"><label for="questionCategory">Фах / тема</label><input id="questionCategory" required placeholder="Письменники"></div><div class="field" id="questionKindWrap"><label for="questionKind">Тип запитання</label><select id="questionKind" class="record-type"><option value="biography">Біографія</option></select></div><div class="field wide"><label for="questionText" id="questionTextLabel">Текст запитання</label><textarea id="questionText" required rows="2" placeholder="Біографічний опис без згадок про авторство чи назви творів"></textarea><small class="admin-tags-help" id="questionTextHelp">Біографічні запитання вводяться вручну. Запитання про авторство створюються автоматично з індексу «Автор» у картках постатей.</small></div><div class="field"><label for="questionPersonA">Перша постать</label><select id="questionPersonA" required></select></div><div class="field"><label for="questionPersonB">Друга постать</label><select id="questionPersonB" required></select></div><div class="field"><label for="questionCorrect">Правильна відповідь</label><select id="questionCorrect" required><option value="a">Перша постать</option><option value="b">Друга постать</option></select></div><div class="field wide"><label for="questionWhy">Пояснення (необов’язково)</label><textarea id="questionWhy" rows="2"></textarea></div><div class="wide"><button type="submit">Зберегти запитання</button> <button type="button" class="secondary" id="newQuestion">＋ Нове запитання</button> <button type="button" class="secondary" id="deleteQuestion">Видалити</button></div><p id="questionMessage" class="admin-tags-help wide"></p></form></div></section>
 <section id="periodQuestionAdmin" class="admin-fold hidden" style="margin:14px 0;padding:16px;border:1px solid #6c5b3c;border-radius:14px;background:#171920"><button type="button" class="admin-fold-toggle" aria-expanded="false">🧭 Питання «Епоха та держава» <span>＋</span></button><div class="admin-fold-content hidden"><p class="admin-tags-help">Кожне питання має власні теги держави, епохи та відповіді. У пошуку достатньо одного збігу: текст питання або будь-який тег. Теги відповіді можуть бути індексами чи іменами / ID постатей.</p><div class="field" style="margin:10px 0"><label for="periodQuestionSearch">Пошук за текстом питання або будь-яким тегом</label><input id="periodQuestionSearch" placeholder="Наприклад: Русь, Кобзар, Шевченко" style="width:100%;background:#15171d;color:var(--text);padding:10px;border:1px solid #454954;border-radius:10px"></div><div id="periodQuestionAdminList" class="epoch-admin-list"></div><form id="periodQuestionForm" class="admin-form"><div class="field wide"><label for="periodQuestionText">Текст питання</label><textarea id="periodQuestionText" rows="2" required placeholder="Наприклад: Хто створив ...?"></textarea></div><div class="field"><label for="periodQuestionCountries">Теги країни / держави (через кому)</label><div class="period-autocomplete"><input id="periodQuestionCountries" autocomplete="off" placeholder="Русь, Гетьманщина"><div id="periodCountrySuggestions" class="period-suggestions hidden"></div></div></div><div class="field"><label for="periodQuestionEpochs">Теги епохи (через кому)</label><div class="period-autocomplete"><input id="periodQuestionEpochs" autocomplete="off" placeholder="Русь, Княжа доба"><div id="periodEpochSuggestions" class="period-suggestions hidden"></div></div></div><div class="field wide"><label for="periodQuestionAnswers">Теги відповіді (через кому): індекси або імена / ID постатей</label><div class="period-autocomplete"><input id="periodQuestionAnswers" required autocomplete="off" placeholder="Письменники, Тарас Шевченко, shevchenko"><div id="periodAnswerSuggestions" class="period-suggestions hidden"></div></div></div><div class="wide"><button type="submit">Зберегти питання</button> <button type="button" class="secondary" id="newPeriodQuestion">＋ Нове питання</button> <button type="button" class="secondary" id="deletePeriodQuestion">Видалити</button></div><p id="periodQuestionMessage" class="admin-tags-help wide"></p></form></div></section></div>
 <div class="admin-grid"><section><div class="admin-tabs"><button type="button" class="secondary active" data-admin-type="person">Постаті</button><button type="button" class="secondary" data-admin-type="event">Події</button></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><input id="adminSearch" placeholder="Пошук…" style="flex:1;min-width:130px;background:#15171d;color:var(--text);padding:10px;border:1px solid #454954;border-radius:10px"><button id="newPerson" class="secondary">＋ Новий запис</button></div><div id="adminList" class="admin-list"></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="secondary" id="exportData">Експорт JSON</button><button class="secondary" id="importData">Імпорт JSON</button><input id="importFile" type="file" accept=".json,application/json" class="hidden"></div><p class="admin-tags-help">Експорт — резервна копія бази та локальної статистики. Імпорт додає записи до наявного каталогу; якщо ID збігається, запис оновлюється. У режимі адміністратора зміни синхронізуються з хмарою.</p></section>
@@ -118,6 +125,7 @@ button,select{font:inherit}button{cursor:pointer;border:1px solid #514838;border
 <div class="field wide"><label>Фотографії (можна вибрати кілька)</label><input id="personPhotosUpload" type="file" accept="image/*" multiple><div class="admin-tags-help">Фото оптимізуються та завантажуються в Supabase Storage. Якщо додано кілька — у грі випадково показуватиметься одне з них.</div><div id="photoPreview" class="photo-manager"></div></div>
 <div class="tag-section wide"><h3>Індекси картки — спільні для всіх карток (значення через кому)</h3><div class="field"><label for="primaryCentury"># Століття / період</label><input id="primaryCentury" placeholder="#XVII_століття, #1600-ті"></div><div class="field"><label for="primaryCountry"># Країна / держава</label><input id="primaryCountry" placeholder="#Україна, #Гетьманщина, #СРСР"></div><div class="field"><label for="primaryProfession"># Фах / роль</label><input id="primaryProfession" placeholder="#Письменник, #Гетьман, #Художник"></div><div class="field"><label for="primaryEpoch"># Епоха</label><input id="primaryEpoch" placeholder="#Русь, #Гетьманщина"></div><div class="field"><label for="primaryLifeYears"># Роки життя (постаті)</label><input id="primaryLifeYears" placeholder="#1595–1657"></div><div class="field wide"><label for="primaryEvents"># Події, у яких брала участь постать</label><input id="primaryEvents" placeholder="#Полтавська_битва, #Північна_війна"></div><div class="field wide hidden" id="authorIndexWrap"><label for="primaryAuthor"># Автор — створені твори</label><textarea id="primaryAuthor" rows="4" placeholder="Енеїда&#10;Наталка Полтавка&#10;Заповіт"></textarea><p class="admin-tags-help">Лише для карток постатей. Вписуй по одному твору в рядок: книги, картини, музичні твори та інші роботи. З цього індексу автоматично формуються окремі запитання про авторство в мінігрі «Хто за фахом?». Підтримуються книги, картини, музичні твори, документи, технічні розробки та інші створені об’єкти.</p></div></div><div class="field wide"><label for="personFacts">Короткі факти (через кому)</label><input id="personFacts" placeholder="факт 1, факт 2"></div><div class="field wide"><label for="personNote">Опис / довідка</label><textarea id="personNote" required></textarea></div><div class="field wide"><label for="personId">Системний ID</label><input id="personId" required pattern="[a-zA-Z0-9_-]+" placeholder="mazepa"></div><div class="wide" style="display:flex;gap:8px;flex-wrap:wrap"><button type="submit">Зберегти запис</button><button type="button" class="secondary" id="deletePerson">Видалити</button><button type="button" class="secondary" id="cancelEdit">Очистити форму</button></div><p class="admin-tags-help wide">Індекси вводяться через кому. Символ # додається автоматично; однакові індекси можна використовувати в багатьох картках. Гравцям індекси не показуються.</p></form></section></div></div><p id="adminMessage" class="note" aria-live="polite"></p></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 const SUPABASE_URL="https://uvzohpryszbiytynzkbk.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_JOrwE_xLaaY2ji3qm5H6sw_3AsSC8P8";
@@ -1063,6 +1071,91 @@ $("personForm").addEventListener("submit",async e=>{e.preventDefault();const id=
 $("deletePerson").addEventListener("click",async()=>{if(!editingPersonId)return;const id=editingPersonId;if(!confirm("Видалити запис «"+(taggedPeople[id]?.name||id)+"» зі спільного каталогу? Запитання, що посилаються на нього, теж можуть потребувати редагування."))return;try{requireAdmin();const previous=taggedPeople[id];delete taggedPeople[id];delete people[id];try{const {error}=await supabaseClient.from("catalog_items").delete().eq("id",id);if(error)throw error;await persistPeople()}catch(err){taggedPeople[id]=previous;people[id]={...previous};throw err}}catch(err){$("adminMessage").textContent="Не вдалося видалити запис зі спільної бази: "+err.message;return}clearPersonForm();$("adminMessage").textContent="Запис видалено зі спільної бази."});
 $("exportData").addEventListener("click",()=>{const payload={version:2,exportedAt:new Date().toISOString(),people:taggedPeople,answerLog:readAnswerLog()};const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="istoriia-baza-ta-statystyka.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);$("adminMessage").textContent="Експортовано базу, фото та журнал відповідей."});
 $("importData").addEventListener("click",()=>$("importFile").click());$("importFile").addEventListener("change",async e=>{const file=e.target.files?.[0];if(!file)return;try{requireAdmin();const data=JSON.parse(await file.text()),incoming=data.people||data;if(!incoming||typeof incoming!=="object"||Array.isArray(incoming))throw new Error("Неправильний формат JSON.");if(!confirm("Імпорт додасть записи до наявного каталогу. Якщо ID уже існує, цей запис буде оновлено. Продовжити?"))return;const merged={...taggedPeople,...incoming};taggedPeople={};Object.entries(merged).forEach(([id,p])=>{taggedPeople[id]={...p,recordType:p.recordType==="event"?"event":"person",photos:Array.isArray(p.photos)?p.photos:[],primaryTags:{century:p.primaryTags?.century||[],country:p.primaryTags?.country||p.state||[],profession:p.primaryTags?.profession||p.activity||[],epoch:p.primaryTags?.epoch||p.epoch||[],lifeYears:p.primaryTags?.lifeYears||((p.recordType!=="event"&&p.years)?[String(p.years).trim().replace(/[–—]/g,"-")]:[]),events:p.primaryTags?.events||p.events||[],author:Array.isArray(p.primaryTags?.author)?p.primaryTags.author:(Array.isArray(p.author)?p.author:[])},lifeYears:p.lifeYears||parseLifeYears(p.years||""),facts:Array.isArray(p.facts)?p.facts:[]}});Object.keys(people).forEach(id=>delete people[id]);Object.entries(taggedPeople).forEach(([id,p])=>people[id]={...p});await persistPeople();if(Array.isArray(data.answerLog))localStorage.setItem(ANSWER_LOG_KEY,JSON.stringify(data.answerLog));clearPersonForm();renderAdmin();$("adminMessage").textContent="Імпорт успішний."}catch(err){$("adminMessage").textContent="Помилка імпорту: "+err.message}finally{$("importFile").value=""}});
+
+
+// Масове додавання запитань з Excel: додавання без заміни існуючих записів.
+function excelCell(row,key){return String(row[key]??"").trim()}
+function excelList(value){return String(value||"").split(/[;,|\n]/).map(x=>x.trim()).filter(Boolean)}
+function excelNorm(value){return String(value||"").trim().toLocaleLowerCase("uk").replace(/\s+/g," ")}
+function excelResolvePerson(value){
+  const raw=String(value||"").trim();
+  if(!raw)return "";
+  if(people[raw])return raw;
+  const target=excelNorm(raw);
+  const found=Object.entries(people).find(([id,p])=>excelNorm(id)===target||excelNorm(p?.name)===target);
+  return found?found[0]:"";
+}
+function excelQuestionKey(q){
+  return [q.game||"period",q.kind||"",q.category||"",q.q||"",q.a||"",q.b||"",q.correct||"",q.countries||[],q.epochs||[],q.answers||[]]
+    .map(v=>excelNorm(Array.isArray(v)?v.join("|"):v)).join("::");
+}
+$("importQuestionsExcelBtn").addEventListener("click",()=>{$("importQuestionsExcelFile").click()});
+$("importQuestionsExcelFile").addEventListener("change",async event=>{
+  const file=event.target.files?.[0]; if(!file)return;
+  const msg=$("importQuestionsExcelMessage");
+  let oldProfession=professionQuestions.slice(),oldPeriod=periodQuestions.slice();
+  try{
+    requireAdmin();
+    if(!window.XLSX)throw new Error("Не завантажилася бібліотека Excel. Перевір підключення до інтернету та онови сторінку.");
+    const data=await file.arrayBuffer();
+    const workbook=XLSX.read(data,{type:"array"});
+    const sheet=workbook.Sheets[workbook.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(sheet,{defval:"",raw:false});
+    if(!rows.length)throw new Error("У таблиці немає рядків із запитаннями.");
+    let added=0,skipped=0,errors=[];
+    const existingKeys=new Set([
+      ...professionQuestions.map(q=>excelQuestionKey(q)),
+      ...periodQuestions.map(q=>excelQuestionKey({...q,game:"period"}))
+    ]);
+    const addedProfession=[],addedPeriod=[];
+    rows.forEach((row,index)=>{
+      const line=index+2;
+      try{
+        const catalog=excelNorm(row.catalog);
+        const q=excelCell(row,"question");
+        if(!q)throw new Error("порожній текст питання");
+        let item;
+        if(catalog==="positive"||catalog==="profession"||catalog==="хто з них"||catalog==="хто за фахом"){
+          const game=(catalog==="positive"||catalog==="хто з них")?"positive":"profession";
+          const a=excelResolvePerson(excelCell(row,"person_a"));
+          const b=excelResolvePerson(excelCell(row,"person_b"));
+          const correct=excelResolvePerson(excelCell(row,"correct_person"));
+          if(!a||!b||!correct)throw new Error("не знайдено постать A, B або правильну відповідь; введи точне ім’я чи ID з каталогу");
+          if(a===b)throw new Error("постаті A та B мають бути різними");
+          if(correct!==a&&correct!==b)throw new Error("правильна відповідь має бути постаттю A або B");
+          const kind=game==="profession"?excelNorm(row.kind||"biography"):"biography";
+          if(game==="profession"&&!["biography","author","біографія","авторство"].includes(kind))throw new Error("kind має бути biography або author");
+          item={id:"q-import-"+Date.now()+"-"+index,game,kind:(kind==="біографія"?"biography":kind==="авторство"?"author":kind),category:excelCell(row,"category"),q,a,b,correct,other:correct===a?b:a,why:excelCell(row,"why")};
+          if(!item.category)throw new Error("не заповнено category (фах/тема)");
+          const key=excelQuestionKey(item);
+          if(existingKeys.has(key)){skipped++;return;}
+          existingKeys.add(key);addedProfession.push(item);
+        }else if(catalog==="period"||catalog==="епоха та держава"||catalog==="держави та епохи"){
+          item={id:"period-import-"+Date.now()+"-"+index,q,countries:excelList(row.countries),epochs:excelList(row.epochs),answers:excelList(row.answers)};
+          if(!item.countries.length&&!item.epochs.length)throw new Error("для period потрібен хоча б один тег countries або epochs");
+          if(!item.answers.length)throw new Error("не заповнено answers");
+          const key=excelQuestionKey({...item,game:"period"});
+          if(existingKeys.has(key)){skipped++;return;}
+          existingKeys.add(key);addedPeriod.push(item);
+        }else throw new Error("catalog має бути positive, profession або period");
+        added++;
+      }catch(err){errors.push("Рядок "+line+": "+err.message)}
+    });
+    if(!added){msg.textContent="Нових запитань не додано. Повтори: "+skipped+". "+(errors.slice(0,5).join(" · ")||"");return;}
+    professionQuestions=[...professionQuestions,...addedProfession];
+    periodQuestions=[...periodQuestions,...addedPeriod];
+    try{
+      if(addedProfession.length)await saveQuestionCatalog();
+      if(addedPeriod.length)await savePeriodQuestionCatalog();
+    }catch(saveErr){
+      professionQuestions=oldProfession;periodQuestions=oldPeriod;
+      throw new Error("Не вдалося зберегти в хмару; імпорт скасовано. "+saveErr.message);
+    }
+    renderQuestionAdmin();renderPeriodQuestionAdmin();
+    msg.textContent="Готово: додано "+added+", повторів пропущено "+skipped+", рядків з помилками "+errors.length+". "+(errors.length?"Приклади: "+errors.slice(0,5).join(" · "):"");
+  }catch(err){msg.textContent="Імпорт не виконано: "+err.message}
+  finally{event.target.value=""}
+});
 
 </script>
 </body></html>
