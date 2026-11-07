@@ -685,28 +685,28 @@ function activeQuestions(){
  if(mode==="positive"&&activeFilter==="__all_positive_questions__"){
   list=[];
   const allPeople=Object.keys(taggedPeople).filter(id=>recordTypeOf(taggedPeople[id])==="person");
-  const positiveCategory=getWhoAmongCategories().find(x=>normalizedTag(x)==="позитивний персонаж")||"Позитивний персонаж";
+  // «Усі питання» бере весь каталог «Хто з них», не лише режими, винесені в меню.
+  const catalogQuestions=professionQuestions.filter(q=>q.game==="positive");
+  for(const q of catalogQuestions){
+   const correct=q.correct||q.a;
+   if(!correct||!allPeople.includes(correct))continue;
+   const preferred=[q.other||q.b].filter(id=>id&&allPeople.includes(id)&&id!==correct);
+   const other=(preferred.length?preferred:shuffle(allPeople.filter(id=>id!==correct))).find(id=>id!==correct);
+   if(other)list.push({...q,correct,other,q:String(q.q||"").replace(/^Хто з них\s*/i,""),_key:"all-who-catalog-"+(q.id||correct)});
+  }
+  const knownKeys=new Set(list.map(q=>q.correct+"|"+q._key));
   for(const category of getWhoAmongCategories()){
-   if(normalizedTag(category)===normalizedTag(positiveCategory)){
-    const saved=professionQuestions.filter(q=>q.game==="positive"&&normalizedTag(q.category)===normalizedTag(positiveCategory));
-    const source=saved.length?saved:(bank.positive||[]);
-    for(const q of source){
-     const correct=q.correct||q.a;
-     if(!correct)continue;
-     const possible=(q.other&&allPeople.includes(q.other)?[q.other]:shuffle(allPeople.filter(id=>id!==correct)));
-     const other=possible.find(id=>id!==correct);
-     if(other)list.push({...q,correct,other,_key:"all-who-positive-"+(q.id||correct)});
-    }
-    continue;
-   }
    const matching=allPeople.filter(id=>isWhoAmongCategory(id,category));
    const distractors=allPeople.filter(id=>!isWhoAmongCategory(id,category));
    for(const correct of matching){
     if(!distractors.length)continue;
+    const key="all-who-tag-"+normalizedTag(category)+"-"+correct;
+    if(list.some(q=>q._key===key))continue;
     const other=shuffle(distractors)[0];
-    list.push({q:category,correct,other,why:"Категорію визначено за індексами постаті.",_key:"all-who-tag-"+normalizedTag(category)+"-"+correct});
+    list.push({q:category,correct,other,why:"Категорію визначено за індексами постаті.",_key:key});
    }
   }
+  if(!list.length)list=(bank.positive||[]).map(q=>({...q,q:String(q.q||"").replace(/^Хто з них\s*/i,""),_key:"all-who-bank-"+(q.id||q.correct||q.a)}));
  }
  if(mode==="period"&&activeFilter) list=list.filter(q=>{
    if(periodFilterType==="epoch"&&q.epoch===activeFilter)return true;
