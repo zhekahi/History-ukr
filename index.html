@@ -303,11 +303,7 @@ const DEMO_QUESTIONS=[
  {id:"demo-positive-artist",game:"positive",category:"Художники",q:"художник?",a:"alla",b:"franko",correct:"alla",other:"franko",why:"Алла Горська була художницею-монументалісткою. Іван Франко відомий насамперед як письменник, поет і перекладач."},
  {id:"demo-profession-biography",game:"profession",kind:"biography",category:"Письменники",q:"Народилася 1871 року, була українською письменницею та поетесою.",a:"lesia",b:"franko",correct:"lesia",other:"franko",why:"Це Леся Українка: вона народилася 1871 року та була українською письменницею і поетесою. Іван Франко — український письменник, поет і перекладач."}
 ];
-function ensureDemoQuestions(){
- let changed=false;
- for(const q of DEMO_QUESTIONS){if(!people[q.correct]||!people[q.other])continue;const existing=professionQuestions.find(x=>x.id===q.id);if(!existing){professionQuestions.push({...q});changed=true}else if(q.id==="demo-profession-biography"){if(existing.q!==q.q||existing.why!==q.why||existing.kind!=="biography"||existing.a!==q.a||existing.b!==q.b||existing.correct!==q.correct){Object.assign(existing,q);changed=true}}else if(q.game==="profession"&&!existing.kind){Object.assign(existing,q);changed=true}}
- if(changed){try{localStorage.setItem(QUESTIONS_KEY,JSON.stringify(professionQuestions))}catch(e){}}
-}
+function ensureDemoQuestions(){ /* Вбудовані приклади вимкнено: каталоги заповнює адміністратор. */ }
 
 async function restorePeople(){
  try{const db=await openPeopleDB();let saved;try{saved=await new Promise((resolve,reject)=>{const req=db.transaction(PEOPLE_IDB_STORE,"readonly").objectStore(PEOPLE_IDB_STORE).get("people");req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}finally{db.close()}
@@ -637,18 +633,16 @@ function activeQuestions(){
   return generated;
  }
  const isAuthorQuestion=q=>q.kind==="author"||(/^\s*(чий|хто\s+написав|хто\s+є\s+автором)/i.test(q.q||""));
- let list=mode==="profession"?professionQuestions.filter(q=>q.game==="profession"&&!isAuthorQuestion(q)&&(!activeFilter||normalizedTag(activeFilter)==="випадково"||sameProfession(q.category,activeFilter))).flatMap(q=>{const correct=q.correct||q.a;if(!correct)return[];const pool=Object.keys(taggedPeople).filter(id=>id!==correct&&recordTypeOf(taggedPeople[id])==="person"&&professionTagsFor(id).some(t=>sameProfession(t,q.category)));const other=shuffle(pool)[0];return other?[{...q,correct,other,kind:"biography",_key:"admin-q-"+q.id}]:[]}):(mode==="positive"&&activeFilter&&activeFilter!=="Позитивний персонаж"?[]:mode==="positive"&&activeFilter==="Позитивний персонаж"?professionQuestions.filter(q=>q.game==="positive"&&q.category===activeFilter).flatMap(q=>{const correct=q.correct||q.a;if(!correct)return[];const pool=Object.keys(taggedPeople).filter(id=>id!==correct&&recordTypeOf(taggedPeople[id])==="person");const other=shuffle(pool)[0];return other?[{...q,correct,other,_key:"admin-q-"+q.id}]:[]}):(bank[mode]||[]));
+ let list=mode==="profession"?professionQuestions.filter(q=>q.game==="profession"&&!isAuthorQuestion(q)&&(!activeFilter||normalizedTag(activeFilter)==="випадково"||sameProfession(q.category,activeFilter))).flatMap(q=>{const correct=q.correct||q.a;if(!correct)return[];const pool=Object.keys(taggedPeople).filter(id=>id!==correct&&recordTypeOf(taggedPeople[id])==="person"&&professionTagsFor(id).some(t=>sameProfession(t,q.category)));const other=shuffle(pool)[0];return other?[{...q,correct,other,kind:"biography",_key:"admin-q-"+q.id}]:[]}):(mode==="positive"?[]:(bank[mode]||[]));
 
- if(mode==="positive"&&activeFilter==="__all_positive_questions__"){
-  list=[];
-  const allPeople=Object.keys(taggedPeople).filter(id=>recordTypeOf(taggedPeople[id])==="person");
-  const catalog=professionQuestions.filter(q=>q.game==="positive");
+ if(mode==="positive"){
+  const catalog=professionQuestions.filter(q=>q.game==="positive"&&q.category&&q.q&&(!activeFilter||activeFilter==="__all_positive_questions__"||normalizedTag(q.category)===normalizedTag(activeFilter)));
+  const peopleIds=Object.keys(taggedPeople).filter(id=>recordTypeOf(taggedPeople[id])==="person");
   for(const q of catalog){
-   const correct=q.correct||q.a;if(!correct||!allPeople.includes(correct))continue;
-   let other=q.other||q.b;if(!other||!allPeople.includes(other)||other===correct)other=shuffle(allPeople.filter(id=>id!==correct))[0];
-   if(other)list.push({...q,correct,other,_key:"all-who-catalog-"+(q.id||q.category+"-"+correct+"-"+(q.q||""))});
+   const matching=peopleIds.filter(id=>isWhoAmongCategory(id,q.category));
+   const distractors=peopleIds.filter(id=>!isWhoAmongCategory(id,q.category));
+   for(const correct of matching){const other=shuffle(distractors)[0];if(other)list.push({...q,correct,other,_key:"who-catalog-"+(q.id||q.category)+"-"+correct});}
   }
-
  }
 if(mode==="event"&&activeFilter&&activeFilter!=="Рандом") list=list.filter(q=>q.group===activeFilter);
  if(false&&mode==="profession"&&activeFilter&&activeFilter!=="Рандом"){
@@ -834,7 +828,7 @@ function saveCustomWhoAmongCategory(value,oldValue=null){
   localStorage.setItem(SUBMODE_PREF_KEY,JSON.stringify(prefs));
   professionQuestions=professionQuestions.map(q=>q.game==="positive"&&q.category===oldValue?{...q,category:value}:q);
  }
- if(value&&!custom.includes(value)&&!whoAmongCategories.includes(value))custom.push(value);
+ if(value&&!custom.some(x=>normalizedTag(x)===normalizedTag(value))&&!whoAmongCategories.some(x=>normalizedTag(x)===normalizedTag(value)))custom.push(value);
  localStorage.setItem(WHO_AMONG_CATEGORIES_KEY,JSON.stringify(custom));
  refreshQuestionCategoryOptions();renderQuestionAdmin();renderSubmodeSettings();
  if(oldValue)saveQuestionCatalog().catch(err=>console.warn("Не вдалося зберегти категорію:",err));
@@ -903,7 +897,7 @@ function renderSetup(m){
   const actions=document.createElement("div");
   actions.style.cssText="display:flex;justify-content:space-between;gap:12px;margin-top:12px;width:100%";
   const randomButton=document.createElement("button");randomButton.type="button";randomButton.className="secondary";randomButton.textContent="🎲 Випадково";randomButton.style.cssText="flex:1;min-width:0";
-  randomButton.addEventListener("click",()=>{const available=getWhoAmongCategories().filter(category=>category==="Позитивний персонаж"?professionQuestions.some(q=>q.game==="positive"&&q.category===category)||bank.positive.length>0:Object.keys(taggedPeople).some(id=>recordTypeOf(taggedPeople[id])==="person"&&isWhoAmongCategory(id,category)));const pool=available.length?available:whoAmongCategories;const chosen=pool[Math.floor(Math.random()*pool.length)];closeSetup();start("positive",chosen)});
+  randomButton.addEventListener("click",()=>{const available=[...new Set(professionQuestions.filter(q=>q.game==="positive"&&q.category&&q.q).map(q=>q.category))].filter(category=>Object.keys(taggedPeople).some(id=>recordTypeOf(taggedPeople[id])==="person"&&isWhoAmongCategory(id,category)));if(!available.length){alert("Спочатку додай категорії та запитання в адмін-панелі.");return}const chosen=available[Math.floor(Math.random()*available.length)];closeSetup();start("positive",chosen)});
   const allButton=document.createElement("button");allButton.type="button";allButton.className="secondary";allButton.textContent="Усі питання";allButton.style.cssText="flex:1;min-width:0";
   allButton.addEventListener("click",()=>{closeSetup();start("positive","__all_positive_questions__")});
   actions.append(randomButton,allButton);
@@ -1227,12 +1221,12 @@ $("stateForm").addEventListener("submit",async e=>{e.preventDefault();const name
 $("deleteState").addEventListener("click",async()=>{if(!editingStateId)return;const before=JSON.parse(JSON.stringify(historicalStates));historicalStates=historicalStates.filter(x=>x.id!==editingStateId);try{await saveStates();renderStateAdmin();resetStateForm();$("stateMessage").textContent="Державу видалено."}catch(err){historicalStates=before;renderStateAdmin();$("stateMessage").textContent="Помилка видалення: "+err.message}});
 $("newQuestion").addEventListener("click",resetQuestionForm);
 initQuestionCategoryAdmin();initSubmodeSettings();$("questionGame").addEventListener("change",updateQuestionKindFields);$("questionKind").addEventListener("change",updateQuestionKindFields);$("questionForm").addEventListener("submit",async e=>{e.preventDefault();const game=$("questionGame").value,kind=game==="profession"?$("questionKind").value:null,category=normalizeProfessionLabel($("questionCategory").value.trim());if(!category){$("questionMessage").textContent="Вкажи фах або категорію.";return}if(game==="positive"){
- if(!getWhoAmongCategories().some(x=>normalizedTag(x)===normalizedTag(category))){
-  $("questionMessage").textContent="Для «Хто з них» доступні лише п’ять визначених тематичних режимів.";
-  return;
- }
- $("questionMessage").textContent="Запитання для «Хто з них» формуються автоматично за індексами постатей.";
- resetQuestionForm();
+ const item={id:editingQuestionId||("who-q-"+Date.now()),game,category,q:$("questionText").value.trim(),why:$("questionWhy").value.trim()};
+ if(!item.q){$("questionMessage").textContent="Вкажи факт / формулювання запитання.";return}
+ const before=professionQuestions.slice();
+ professionQuestions=editingQuestionId?professionQuestions.map(x=>x.id===editingQuestionId?item:x):[...professionQuestions,item];
+ try{saveCustomWhoAmongCategory(category);await saveQuestionCatalog();renderQuestionAdmin();resetQuestionForm();$("questionMessage").textContent="Категорію та запитання збережено. Категорія з’явиться в порядку підрежимів."}
+ catch(err){professionQuestions=before;renderQuestionAdmin();$("questionMessage").textContent="Помилка збереження: "+err.message}
  return
 }const a=$("questionPersonA").value;if(!a){$("questionMessage").textContent="Обери постать для запитання.";return}const item={id:editingQuestionId||("q-"+Date.now()),game,kind,category,q:$("questionText").value.trim(),correct:a,why:$("questionWhy").value.trim()};const before=professionQuestions.slice();professionQuestions=editingQuestionId?professionQuestions.map(x=>x.id===editingQuestionId?item:x):[...professionQuestions,item];try{await saveQuestionCatalog();renderQuestionAdmin();resetQuestionForm();$("questionMessage").textContent="Запитання збережено."}catch(err){professionQuestions=before;renderQuestionAdmin();$("questionMessage").textContent="Помилка збереження: "+err.message}});
 $("deleteQuestion").addEventListener("click",async()=>{if(!editingQuestionId)return;const before=professionQuestions.slice();professionQuestions=professionQuestions.filter(x=>x.id!==editingQuestionId);try{await saveQuestionCatalog();renderQuestionAdmin();resetQuestionForm()}catch(err){professionQuestions=before;renderQuestionAdmin();$("questionMessage").textContent="Помилка видалення: "+err.message}});
