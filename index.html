@@ -861,11 +861,23 @@ function renderChoiceOptions(items,attribute,onChoose,visibleCount=4){
 function renderProfessionSetup(){
  const panel=$("setupPanel"),categories=getProfessionCategories(),configured=getConfiguredSubmodes("profession",categories),visible=configured.visible,extra=configured.extra;
  const button=(value,label=value)=>`<button type="button" class="secondary" data-profession-category="${adminEscape(value)}">${adminEscape(label)}</button>`;
- let html='<div class="setup-options">'+button("Випадково")+visible.map(x=>button(x)).join("")+'</div>';
+ let html='<div class="setup-options">'+button("Випадково")+button("__all_profession_questions__","Усі питання")+visible.map(x=>button(x)).join("")+'</div>';
  if(extra.length)html+='<div id="professionExtraModes" class="setup-options hidden" style="margin-top:8px">'+extra.map(x=>button(x)).join("")+'</div><button type="button" class="secondary setup-more" id="toggleProfessionMore">Більше режимів ↓</button>';
  html+='<button type="button" class="secondary setup-back" id="backProfession">← Назад</button>';
  panel.insertAdjacentHTML("beforeend",html);
- panel.querySelectorAll("[data-profession-category]").forEach(b=>b.addEventListener("click",()=>{const value=b.dataset.professionCategory;closeSetup();start("profession",value==="Випадково"?null:value)}));
+ panel.querySelectorAll("[data-profession-category]").forEach(b=>b.addEventListener("click",()=>{
+  const value=b.dataset.professionCategory;closeSetup();
+  if(value==="Випадково"){
+   const available=categories.filter(category=>{
+    const ids=Object.keys(taggedPeople).filter(id=>recordTypeOf(taggedPeople[id])==="person"&&professionTagsFor(id).some(t=>sameProfession(t,category)));
+    return ids.length>=2&&(professionQuestions.some(q=>q.game==="profession"&&sameProfession(q.category,category)&&(ids.includes(q.correct||q.a)))||ids.some(id=>authorWorksFor(id).length));
+   });
+   const pool=available.length?available:categories;
+   const chosen=pool[Math.floor(Math.random()*pool.length)];
+   start("profession",chosen||null);
+  }else if(value==="__all_profession_questions__")start("profession",null);
+  else start("profession",value);
+ }));
  const more=panel.querySelector("#toggleProfessionMore");if(more)more.addEventListener("click",()=>{const box=panel.querySelector("#professionExtraModes"),opening=box.classList.contains("hidden");box.classList.toggle("hidden",!opening);more.textContent=opening?"Менше режимів ↑":"Більше режимів ↓"});
  panel.querySelector("#backProfession").addEventListener("click",()=>renderSetup("positive"));
 }
