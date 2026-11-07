@@ -679,7 +679,7 @@ function activeQuestions(){
    if(!distractors.length)return;
    const other=shuffle(distractors)[0];
    const key="who-tag-"+normalizedTag(activeFilter)+"-"+correct;
-   if(!list.some(q=>q.correct===correct&&q._key===key))list.push({q:"Хто з цих постатей належить до категорії «"+activeFilter+"»?",correct,other,why:"Категорію визначено за фахом і роллю, зазначеними в індексах картки.",_key:key});
+   if(!list.some(q=>q.correct===correct&&q._key===key))list.push({q:normalizeProfessionLabel(activeFilter).replace(/[_-]+/g," ").replace(/\s+/g," ").trim(),correct,other,why:"Категорію визначено за фахом і роллю, зазначеними в індексах картки.",_key:key});
   });
  }
  if(mode==="period"&&activeFilter) list=list.filter(q=>{
