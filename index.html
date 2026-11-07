@@ -455,8 +455,8 @@ eventRecordIds.forEach(id=>{if(taggedPeople[id]){taggedPeople[id].recordType="ev
 function primaryValues(key){return [...new Set(Object.values(taggedPeople).flatMap(p=>(p.primaryTags?.[key]||[])).map(x=>String(x).trim().replace(/^#+/,"")).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"uk"))}
 function normalizedTag(v){return String(v||"").toLocaleLowerCase("uk").replace(/[’'`]/g,"").replace(/[^\p{L}\p{N}]+/gu,"").replace(/и$/,"і")}
 const labels={positive:"Хто з них",profession:"Хто за фахом?",period:"Епоха та держава",event:"Історичні події"};
-const whoAmongCategories=["Письменники","Художники","Полководці","Державні діячі","Позитивний персонаж","Винахідники","Науковці","Мандрівники та першовідкривачі","Композитори"] ;
-function getWhoAmongCategories(){return [...new Set([...whoAmongCategories,...getProfessionCategories()])].filter(Boolean)}
+const whoAmongCategories=["Письменники","Художники","Полководці","Державні діячі","Позитивний персонаж"];
+function getWhoAmongCategories(){return whoAmongCategories.slice()} 
 const storage={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 let professionQuestionMode=storage.get("history-quiz-profession-question-mode")!=="0";
 let mode="positive", rule="one", streak=0, score=0, roundCount=0, losses=0, best=0, current=null, answered=false, used=[], recentPeople=[], activeFilter=null, periodFilterType="epoch", showNames=true;
@@ -861,11 +861,23 @@ function renderChoiceOptions(items,attribute,onChoose,visibleCount=4){
 function renderProfessionSetup(){
  const panel=$("setupPanel"),categories=getProfessionCategories(),configured=getConfiguredSubmodes("profession",categories),visible=configured.visible,extra=configured.extra;
  const button=(value,label=value)=>`<button type="button" class="secondary" data-profession-category="${adminEscape(value)}">${adminEscape(label)}</button>`;
- let html='<div class="setup-options">'+button("Випадково")+visible.map(x=>button(x)).join("")+'</div>';
+ let html='<div class="setup-options">'+button("Випадково")+button("__all_profession_questions__","Усі питання")+visible.map(x=>button(x)).join("")+'</div>';
  if(extra.length)html+='<div id="professionExtraModes" class="setup-options hidden" style="margin-top:8px">'+extra.map(x=>button(x)).join("")+'</div><button type="button" class="secondary setup-more" id="toggleProfessionMore">Більше режимів ↓</button>';
  html+='<button type="button" class="secondary setup-back" id="backProfession">← Назад</button>';
  panel.insertAdjacentHTML("beforeend",html);
- panel.querySelectorAll("[data-profession-category]").forEach(b=>b.addEventListener("click",()=>{const value=b.dataset.professionCategory;closeSetup();start("profession",value==="Випадково"?null:value)}));
+ panel.querySelectorAll("[data-profession-category]").forEach(b=>b.addEventListener("click",()=>{
+  const value=b.dataset.professionCategory;closeSetup();
+  if(value==="Випадково"){
+   const available=categories.filter(category=>{
+    const ids=Object.keys(taggedPeople).filter(id=>recordTypeOf(taggedPeople[id])==="person"&&professionTagsFor(id).some(t=>sameProfession(t,category)));
+    return ids.length>=2&&(professionQuestions.some(q=>q.game==="profession"&&sameProfession(q.category,category)&&(ids.includes(q.correct||q.a)))||ids.some(id=>authorWorksFor(id).length));
+   });
+   const pool=available.length?available:categories;
+   const chosen=pool[Math.floor(Math.random()*pool.length)];
+   start("profession",chosen||null);
+  }else if(value==="__all_profession_questions__")start("profession",null);
+  else start("profession",value);
+ }));
  const more=panel.querySelector("#toggleProfessionMore");if(more)more.addEventListener("click",()=>{const box=panel.querySelector("#professionExtraModes"),opening=box.classList.contains("hidden");box.classList.toggle("hidden",!opening);more.textContent=opening?"Менше режимів ↑":"Більше режимів ↓"});
  panel.querySelector("#backProfession").addEventListener("click",()=>renderSetup("positive"));
 }
@@ -873,7 +885,7 @@ function renderSetup(m){
  mode=m;
  if(m==="positive"){
   modalShell("Хто з них","Обери тематичний режим або запусти випадкову категорію.","");
-  const positiveModes=getConfiguredSubmodes("positive",getWhoAmongCategories().filter(x=>x!=="Рандом"));const positiveOrdered=[...positiveModes.visible,...positiveModes.extra,"Рандом"];renderChoiceOptions(positiveOrdered,"who-category",x=>{closeSetup();start("positive",x)},positiveModes.visible.length);
+  const positiveModes=getConfiguredSubmodes("positive",getWhoAmongCategories());const positiveOrdered=[...positiveModes.visible,...positiveModes.extra];renderChoiceOptions(positiveOrdered,"who-category",x=>{closeSetup();start("positive",x)},positiveModes.visible.length);
   const randomButton=document.createElement("button");randomButton.type="button";randomButton.className="secondary";randomButton.textContent="🎲 Випадково";randomButton.style.marginTop="8px";
   randomButton.addEventListener("click",()=>{const available=getWhoAmongCategories().filter(category=>category==="Позитивний персонаж"?professionQuestions.some(q=>q.game==="positive"&&q.category===category)||bank.positive.length>0:Object.keys(taggedPeople).some(id=>recordTypeOf(taggedPeople[id])==="person"&&isWhoAmongCategory(id,category)));const pool=available.length?available:whoAmongCategories;const chosen=pool[Math.floor(Math.random()*pool.length)];closeSetup();start("positive",chosen)});
   $("setupPanel").appendChild(randomButton);
