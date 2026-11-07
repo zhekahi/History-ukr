@@ -471,7 +471,7 @@ $("best").textContent=best;
 function shuffle(arr){return [...arr].sort(()=>Math.random()-.5)}
 function start(m=mode, filter=null){
  mode=m;activeFilter=filter;streak=0;score=0;roundCount=0;losses=0;used=[];recentPeople=[];best=readBest();updateStats();
- $("modeLabel").textContent=labels[mode]+(filter?" · "+filter:" ");
+ const filterLabel=filter==="__all_positive_questions__"?"Усі питання":filter;$("modeLabel").textContent=labels[mode]+(filterLabel?" · "+filterLabel:" ");
  $("home").classList.add("hidden");$("game").classList.remove("hidden");$("gameover").classList.add("hidden");$("round").classList.remove("hidden");nextQuestion()
 }
 function normalizeProfessionLabel(value){
@@ -682,6 +682,32 @@ function activeQuestions(){
    if(!list.some(q=>q.correct===correct&&q._key===key))list.push({q:normalizeProfessionLabel(activeFilter).replace(/[_-]+/g," ").replace(/\s+/g," ").trim(),correct,other,why:"Категорію визначено за фахом і роллю, зазначеними в індексах картки.",_key:key});
   });
  }
+ if(mode==="positive"&&activeFilter==="__all_positive_questions__"){
+  list=[];
+  const allPeople=Object.keys(taggedPeople).filter(id=>recordTypeOf(taggedPeople[id])==="person");
+  const positiveCategory=getWhoAmongCategories().find(x=>normalizedTag(x)==="позитивний персонаж")||"Позитивний персонаж";
+  for(const category of getWhoAmongCategories()){
+   if(normalizedTag(category)===normalizedTag(positiveCategory)){
+    const saved=professionQuestions.filter(q=>q.game==="positive"&&normalizedTag(q.category)===normalizedTag(positiveCategory));
+    const source=saved.length?saved:(bank.positive||[]);
+    for(const q of source){
+     const correct=q.correct||q.a;
+     if(!correct)continue;
+     const possible=(q.other&&allPeople.includes(q.other)?[q.other]:shuffle(allPeople.filter(id=>id!==correct)));
+     const other=possible.find(id=>id!==correct);
+     if(other)list.push({...q,correct,other,_key:"all-who-positive-"+(q.id||correct)});
+    }
+    continue;
+   }
+   const matching=allPeople.filter(id=>isWhoAmongCategory(id,category));
+   const distractors=allPeople.filter(id=>!isWhoAmongCategory(id,category));
+   for(const correct of matching){
+    if(!distractors.length)continue;
+    const other=shuffle(distractors)[0];
+    list.push({q:category,correct,other,why:"Категорію визначено за індексами постаті.",_key:"all-who-tag-"+normalizedTag(category)+"-"+correct});
+   }
+  }
+ }
  if(mode==="period"&&activeFilter) list=list.filter(q=>{
    if(periodFilterType==="epoch"&&q.epoch===activeFilter)return true;
    return [q.correct,q.other].some(id=>{const p=taggedPeople[id]||people[id]||{};const tags=periodFilterType==="country"?[...(p.primaryTags?.country||[]),...(p.state||[])]:[...(p.primaryTags?.epoch||[]),...(p.epoch||[]),...(p.primaryTags?.century||[])];return tags.some(t=>normalizedTag(t)===normalizedTag(activeFilter))});
@@ -724,7 +750,7 @@ function activeQuestions(){
    }
  }
  // Ворота прив'язані до конкретного режиму третього рівня, а не до всієї мінігри.
- const gateId=gateConfigId(mode,mode==="period"?periodFilterType:null,activeFilter);
+ const gateId=mode==="positive"&&activeFilter==="__all_positive_questions__"?null:gateConfigId(mode,mode==="period"?periodFilterType:null,activeFilter);
  const gate=gateId?gameGates[gateId]:null;
  if(mode!=="profession"&&gate&&Array.isArray(gate.values)&&gate.values.length){
    const eligible=id=>{
@@ -845,15 +871,16 @@ function refreshQuestionCategoryOptions(){
  const list=$("questionCategoryOptions");
  if(!list)return;
  const game=$("questionGame")?.value||"positive";
- const categories=game==="positive"
-  ?getWhoAmongCategories()
-  :getProfessionCategories();
- list.innerHTML=categories.slice()
-  .sort((a,b)=>a.localeCompare(b,"uk"))
-  .map(x=>`<option value="${adminEscape(x)}"></option>`)
-  .join("");
+ let categories;
+ if(game==="positive"){
+  const configured=getConfiguredSubmodes("positive",getWhoAmongCategories());
+  categories=[...configured.visible,...configured.extra];
+ }else{
+  categories=getProfessionCategories().sort((a,b)=>a.localeCompare(b,"uk"));
+ }
+ list.innerHTML=categories.map(x=>`<option value="${adminEscape(x)}"></option>`).join("");
 }
-  function saveCustomProfessionCategory(value,oldValue=null){value=normalizeProfessionLabel(value);oldValue=oldValue?normalizeProfessionLabel(oldValue):oldValue;let custom=[];try{custom=JSON.parse(localStorage.getItem("history-quiz-custom-professions")||"[]")}catch(e){}if(oldValue){custom=custom.filter(x=>x!==oldValue);const renames=professionCategoryRenames();renames[oldValue]=value;localStorage.setItem("history-quiz-profession-renames",JSON.stringify(renames));let prefs=readSubmodePrefs();for(const game of ["positive","profession"]){if(Array.isArray(prefs[game]))prefs[game]=prefs[game].map(x=>x===oldValue?value:x)}localStorage.setItem(SUBMODE_PREF_KEY,JSON.stringify(prefs))}if(!custom.includes(value))custom.push(value);localStorage.setItem("history-quiz-custom-professions",JSON.stringify(custom));refreshQuestionCategoryOptions();renderQuestionAdmin();renderSubmodeSettings()}
+function saveCustomProfessionCategory(value,oldValue=null){value=normalizeProfessionLabel(value);oldValue=oldValue?normalizeProfessionLabel(oldValue):oldValue;let custom=[];try{custom=JSON.parse(localStorage.getItem("history-quiz-custom-professions")||"[]")}catch(e){}if(oldValue){custom=custom.filter(x=>x!==oldValue);const renames=professionCategoryRenames();renames[oldValue]=value;localStorage.setItem("history-quiz-profession-renames",JSON.stringify(renames));let prefs=readSubmodePrefs();for(const game of ["profession"]){if(Array.isArray(prefs[game]))prefs[game]=prefs[game].map(x=>x===oldValue?value:x)}localStorage.setItem(SUBMODE_PREF_KEY,JSON.stringify(prefs))}if(!custom.includes(value))custom.push(value);localStorage.setItem("history-quiz-custom-professions",JSON.stringify(custom));refreshQuestionCategoryOptions();renderQuestionAdmin();renderSubmodeSettings()}
 function initQuestionCategoryAdmin(){refreshQuestionCategoryOptions();$("addQuestionCategory")?.addEventListener("click",()=>{const value=prompt("Назва нового фаху / категорії:");if(value?.trim()){saveCustomProfessionCategory(value.trim());$("questionCategory").value=value.trim()}});$("editQuestionCategory")?.addEventListener("click",()=>{const oldValue=$("questionCategory").value.trim();if(!oldValue){alert("Спочатку обери фах у полі вище.");return}const value=prompt("Нова назва фаху:",oldValue);if(value?.trim()&&value.trim()!==oldValue){saveCustomProfessionCategory(value.trim(),oldValue);professionQuestions=professionQuestions.map(q=>q.category===oldValue?{...q,category:value.trim()}:q);$("questionCategory").value=value.trim();saveQuestionCatalog().catch(err=>alert("Не вдалося зберегти зміни: "+err.message))}})}
 function getEpochCategories(){return historicalEpochs.slice().sort((a,b)=>(a.order||0)-(b.order||0)).map(x=>x.name).filter(Boolean)}
 const eventGroups=["Козацька доба","Національно-визвольні змагання","Повоєнний період","Незалежна Україна","Рандом"];
@@ -897,9 +924,14 @@ function renderSetup(m){
  if(m==="positive"){
   modalShell("Хто з них","Обери тематичний режим або запусти випадкову категорію.","");
   const positiveModes=getConfiguredSubmodes("positive",getWhoAmongCategories());const positiveOrdered=[...positiveModes.visible,...positiveModes.extra];renderChoiceOptions(positiveOrdered,"who-category",x=>{closeSetup();start("positive",x)},positiveModes.visible.length);
-  const randomButton=document.createElement("button");randomButton.type="button";randomButton.className="secondary";randomButton.textContent="🎲 Випадково";randomButton.style.marginTop="8px";
+  const actions=document.createElement("div");
+  actions.style.cssText="display:flex;justify-content:space-between;gap:12px;margin-top:12px";
+  const randomButton=document.createElement("button");randomButton.type="button";randomButton.className="secondary";randomButton.textContent="🎲 Випадково";randomButton.style.flex="1";
   randomButton.addEventListener("click",()=>{const available=getWhoAmongCategories().filter(category=>category==="Позитивний персонаж"?professionQuestions.some(q=>q.game==="positive"&&q.category===category)||bank.positive.length>0:Object.keys(taggedPeople).some(id=>recordTypeOf(taggedPeople[id])==="person"&&isWhoAmongCategory(id,category)));const pool=available.length?available:whoAmongCategories;const chosen=pool[Math.floor(Math.random()*pool.length)];closeSetup();start("positive",chosen)});
-  $("setupPanel").appendChild(randomButton);
+  const allButton=document.createElement("button");allButton.type="button";allButton.className="secondary";allButton.textContent="Усі питання";allButton.style.flex="1";
+  allButton.addEventListener("click",()=>{closeSetup();start("positive","__all_positive_questions__")});
+  actions.append(randomButton,allButton);
+  $("setupPanel").appendChild(actions);
  }else if(m==="profession"){
   modalShell("Хто за фахом?","Обери фах або випадкові запитання. У кожному раунді дві постаті матимуть однаковий фах.","");
   renderProfessionSetup();
@@ -1111,27 +1143,20 @@ function fillQuestionPeople(){const opts=Object.entries(taggedPeople).filter(([i
 function setupQuestionEditorLayout(){const fold=$("questionAdmin")?.querySelector(".admin-fold-content");if(!fold||fold.querySelector(".question-editor-layout"))return;const search=fold.querySelector("#questionAdminSearch")?.closest(".field"),list=fold.querySelector("#questionAdminList"),form=fold.querySelector("#questionForm");if(!search||!list||!form)return;const layout=document.createElement("div");layout.className="question-editor-layout";const left=document.createElement("div");left.className="question-editor-list";const right=document.createElement("div");right.className="question-editor-form";search.style.margin="0 0 10px";left.append(search,list);right.append(form);layout.append(left,right);fold.append(layout)}
 function renderQuestionAdmin(){setupQuestionEditorLayout();const list=$("questionAdminList");if(!list)return;const heading=$("questionAdmin")?.querySelector(".admin-fold-toggle");if(heading)heading.innerHTML=(questionAdminGameFilter==="positive"?"❓ Каталог запитань «Хто з них»":"❓ Каталог запитань «Хто за фахом»") + " <span>＋</span>";const query=($("questionAdminSearch")?.value||"").trim().toLocaleLowerCase("uk");const filtered=professionQuestions.filter(q=>q.game===questionAdminGameFilter).filter(q=>!(q.kind==="author"||(/^\s*(чий|хто\s+написав|хто\s+є\s+автором)/i.test(q.q||"")))).filter(q=>[q.q,normalizeProfessionLabel(q.category),q.game,q.kind,q.correct,q.a,q.b,q.other,people[q.correct]?.name,people[q.a]?.name,people[q.b]?.name].some(v=>String(v||"").toLocaleLowerCase("uk").includes(query)));list.innerHTML=filtered.map(q=>`<button type="button" class="admin-person question-admin-item" data-question-id="${adminEscape(q.id)}"><span> <b>${q.game==="positive"?"Хто з них":"Хто за фахом?"} · ${adminEscape(normalizeProfessionLabel(q.category))}${q.game==="profession"?" · "+(q.kind==="author"?"Авторство":"Біографія"):""}</b><small>${adminEscape(q.q)}</small></span><span class="question-edit-label">Редагувати →</span></button>`).join("")||'<p class="admin-tags-help">За цим пошуком запитань не знайдено.</p>';list.querySelectorAll("[data-question-id]").forEach(b=>b.addEventListener("click",()=>loadQuestionForm(b.dataset.questionId)));fillQuestionPeople()}
 function updateQuestionKindFields(){
- const game=$("questionGame").value;
- const kind=$("questionKind");
- const label=document.querySelector('label[for="questionCategory"]');
- const actions=document.querySelector(".category-admin-actions");
-
- if(label){
-  label.textContent=game==="positive"?"Тема":"Фах";
- }
-
- if(actions){
-  actions.style.display=game==="positive"?"none":"flex";
- }
-
- if(kind){
-  const wrap=kind.closest(".question-kind-row")||kind.parentElement;
-  if(wrap)wrap.style.display=game==="profession"?"":"none";
- }
-
+ const isProfession=$("questionGame").value==="profession";
+ $("questionKindWrap").classList.toggle("hidden",!isProfession);
+ $("questionPersonWrap").classList.toggle("hidden",!isProfession);
+ $("questionPersonA").required=isProfession;
+ const categoryLabel=document.querySelector('label[for="questionCategory"]');
+ if(categoryLabel)categoryLabel.textContent=isProfession?"Фах":"Тема";
+ const categoryActions=document.querySelector(".category-admin-actions");
+ if(categoryActions)categoryActions.style.display=isProfession?"":"none";
+ $("questionTextLabel").textContent=isProfession?($("questionKind").value==="author"?"Назва твору":"Біографічний опис"):"Текст запитання";
+ $("questionTextHelp").textContent=isProfession?($("questionKind").value==="author"?"Введи лише назву твору. На екрані вона з’явиться після слів «Хто з них є автором».":"Введи лише біографічний опис. На екрані перед ним з’явиться «Хто з них». "):"Запитання для «Хто з них» формуються автоматично за тематичними індексами постатей.";
+ $("questionText").placeholder=isProfession?($("questionKind").value==="author"?"Наприклад: «Енеїда»":"Наприклад: Народився 1814 року..."):"Запитання формуються за тематичними індексами.";
  refreshQuestionCategoryOptions();
 }
-  function loadQuestionForm(id){const q=professionQuestions.find(x=>x.id===id);if(!q)return;editingQuestionId=id;fillQuestionPeople();$("questionGame").value=q.game==="positive"?"positive":"profession";$("questionCategory").value=normalizeProfessionLabel(q.category);$("questionKind").value=q.kind||(/^\s*(чий|хто\s+написав|хто\s+є\s+автором)/i.test(q.q||"")?"author":"biography");$("questionText").value=q.game==="profession"?professionQuestionBody(q):q.q;$("questionPersonA").value=q.correct||q.a;$("questionWhy").value=q.why||"";$("deleteQuestion").disabled=false;updateQuestionKindFields();$("questionMessage").textContent="Редагування запитання."}
+function loadQuestionForm(id){const q=professionQuestions.find(x=>x.id===id);if(!q)return;editingQuestionId=id;fillQuestionPeople();$("questionGame").value=q.game==="positive"?"positive":"profession";$("questionCategory").value=normalizeProfessionLabel(q.category);$("questionKind").value=q.kind||(/^\s*(чий|хто\s+написав|хто\s+є\s+автором)/i.test(q.q||"")?"author":"biography");$("questionText").value=q.game==="profession"?professionQuestionBody(q):q.q;$("questionPersonA").value=q.correct||q.a;$("questionWhy").value=q.why||"";$("deleteQuestion").disabled=false;updateQuestionKindFields();$("questionMessage").textContent="Редагування запитання."}
 function resetQuestionForm(){editingQuestionId=null;$("questionForm").reset();$("questionGame").value=questionAdminGameFilter;$("questionKind").value="biography";$("deleteQuestion").disabled=true;fillQuestionPeople();updateQuestionKindFields();$("questionMessage").textContent="Нове запитання."}
 async function saveQuestionCatalog(){requireAdmin();const {error}=await supabaseClient.from("catalog_items").upsert({id:QUESTIONS_CLOUD_ID,record_type:"event",data:{questions:professionQuestions},updated_by:cloudUser.id,updated_at:new Date().toISOString()},{onConflict:"id"});if(error)throw error;try{localStorage.setItem(QUESTIONS_KEY,JSON.stringify(professionQuestions))}catch(e){console.warn("Хмарну версію запитань збережено, локальний кеш недоступний.",e)}}
 async function saveStates(){requireAdmin();for(const x of historicalStates)if(x.photo?.startsWith("data:image/"))x.photo=await uploadPhotoIfNeeded("state-"+x.id,x.photo,0);const {error}=await supabaseClient.from("catalog_items").upsert({id:STATES_CLOUD_ID,record_type:"event",data:{states:historicalStates},updated_by:cloudUser.id,updated_at:new Date().toISOString()},{onConflict:"id"});if(error)throw error;try{localStorage.setItem(STATES_KEY,JSON.stringify(historicalStates))}catch(e){console.warn("Хмарну версію держав збережено, локальний кеш недоступний.",e)}}
@@ -1213,7 +1238,7 @@ initQuestionCategoryAdmin();initSubmodeSettings();$("questionGame").addEventList
  }
  $("questionMessage").textContent="Запитання для «Хто з них» формуються автоматично за індексами постатей.";
  resetQuestionForm();
- return;
+ return
 }const a=$("questionPersonA").value;if(!a){$("questionMessage").textContent="Обери постать для запитання.";return}const item={id:editingQuestionId||("q-"+Date.now()),game,kind,category,q:$("questionText").value.trim(),correct:a,why:$("questionWhy").value.trim()};const before=professionQuestions.slice();professionQuestions=editingQuestionId?professionQuestions.map(x=>x.id===editingQuestionId?item:x):[...professionQuestions,item];try{await saveQuestionCatalog();renderQuestionAdmin();resetQuestionForm();$("questionMessage").textContent="Запитання збережено."}catch(err){professionQuestions=before;renderQuestionAdmin();$("questionMessage").textContent="Помилка збереження: "+err.message}});
 $("deleteQuestion").addEventListener("click",async()=>{if(!editingQuestionId)return;const before=professionQuestions.slice();professionQuestions=professionQuestions.filter(x=>x.id!==editingQuestionId);try{await saveQuestionCatalog();renderQuestionAdmin();resetQuestionForm()}catch(err){professionQuestions=before;renderQuestionAdmin();$("questionMessage").textContent="Помилка видалення: "+err.message}});
 
