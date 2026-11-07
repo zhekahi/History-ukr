@@ -685,4 +685,3 @@ function activeQuestions(){
    let other=q.other||q.b;if(!other||!allPeople.includes(other)||other===correct)other=shuffle(allPeople.filter(id=>id!==correct))[0];
    if(other)list.push({...q,correct,other,_key:"all-who-catalog-"+(q.id||q.category+"-"+correct+"-"+(q.q||""))});
   }
-
