@@ -456,7 +456,12 @@ function primaryValues(key){return [...new Set(Object.values(taggedPeople).flatM
 function normalizedTag(v){return String(v||"").toLocaleLowerCase("uk").replace(/[’'`]/g,"").replace(/[^\p{L}\p{N}]+/gu,"").replace(/и$/,"і")}
 const labels={positive:"Хто з них",profession:"Хто за фахом?",period:"Епоха та держава",event:"Історичні події"};
 const whoAmongCategories=["Письменники","Художники","Полководці","Державні діячі","Позитивний персонаж"];
-function getWhoAmongCategories(){return whoAmongCategories.slice()} 
+const WHO_AMONG_CATEGORIES_KEY="history-quiz-custom-who-categories";
+function getWhoAmongCategories(){
+ let custom=[];try{custom=JSON.parse(localStorage.getItem(WHO_AMONG_CATEGORIES_KEY)||"[]")}catch(e){}
+ const questionCategories=(professionQuestions||[]).filter(q=>q.game==="positive").map(q=>q.category).filter(Boolean);
+ return [...new Set([...whoAmongCategories,...custom,...questionCategories].map(x=>String(x||"").trim()).filter(Boolean))];
+} 
 const storage={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 let professionQuestionMode=storage.get("history-quiz-profession-question-mode")!=="0";
 let mode="positive", rule="one", streak=0, score=0, roundCount=0, losses=0, best=0, current=null, answered=false, used=[], recentPeople=[], activeFilter=null, periodFilterType="epoch", showNames=true;
@@ -685,34 +690,22 @@ function activeQuestions(){
  if(mode==="positive"&&activeFilter==="__all_positive_questions__"){
   list=[];
   const allPeople=Object.keys(taggedPeople).filter(id=>recordTypeOf(taggedPeople[id])==="person");
-  // «Усі питання» бере весь каталог «Хто з них», не лише режими, винесені в меню.
-  const catalogQuestions=professionQuestions.filter(q=>q.game==="positive");
-  for(const q of catalogQuestions){
-   const correct=q.correct||q.a;
-   if(!correct||!allPeople.includes(correct))continue;
-   const preferred=[q.other||q.b].filter(id=>id&&allPeople.includes(id)&&id!==correct);
-   const other=(preferred.length?preferred:shuffle(allPeople.filter(id=>id!==correct))).find(id=>id!==correct);
-   if(other)list.push({...q,correct,other,q:String(q.q||"").replace(/^Хто з них\s*/i,""),_key:"all-who-catalog-"+(q.id||correct)});
+  const catalog=professionQuestions.filter(q=>q.game==="positive");
+  for(const q of catalog){
+   const correct=q.correct||q.a;if(!correct||!allPeople.includes(correct))continue;
+   let other=q.other||q.b;if(!other||!allPeople.includes(other)||other===correct)other=shuffle(allPeople.filter(id=>id!==correct))[0];
+   if(other)list.push({...q,correct,other,_key:"all-who-catalog-"+(q.id||q.category+"-"+correct+"-"+(q.q||""))});
   }
-  const knownKeys=new Set(list.map(q=>q.correct+"|"+q._key));
-  for(const category of getWhoAmongCategories()){
-   const matching=allPeople.filter(id=>isWhoAmongCategory(id,category));
-   const distractors=allPeople.filter(id=>!isWhoAmongCategory(id,category));
+  const allCategories=[...new Set(allPeople.flatMap(id=>(taggedPeople[id]?.primaryTags?.profession||[]).map(String)))];
+  for(const category of allCategories){
+   const matching=allPeople.filter(id=>isWhoAmongCategory(id,category)),distractors=allPeople.filter(id=>!isWhoAmongCategory(id,category));
    for(const correct of matching){
-    if(!distractors.length)continue;
-    const key="all-who-tag-"+normalizedTag(category)+"-"+correct;
-    if(list.some(q=>q._key===key))continue;
-    const other=shuffle(distractors)[0];
-    list.push({q:category,correct,other,why:"Категорію визначено за індексами постаті.",_key:key});
+    if(!distractors.length)continue;const other=shuffle(distractors)[0],key="all-who-tag-"+normalizedTag(category)+"-"+correct;
+    if(!list.some(q=>q._key===key))list.push({q:category,correct,other,why:"Категорію визначено за індексами постаті.",_key:key});
    }
   }
-  if(!list.length)list=(bank.positive||[]).map(q=>({...q,q:String(q.q||"").replace(/^Хто з них\s*/i,""),_key:"all-who-bank-"+(q.id||q.correct||q.a)}));
  }
- if(mode==="period"&&activeFilter) list=list.filter(q=>{
-   if(periodFilterType==="epoch"&&q.epoch===activeFilter)return true;
-   return [q.correct,q.other].some(id=>{const p=taggedPeople[id]||people[id]||{};const tags=periodFilterType==="country"?[...(p.primaryTags?.country||[]),...(p.state||[])]:[...(p.primaryTags?.epoch||[]),...(p.epoch||[]),...(p.primaryTags?.century||[])];return tags.some(t=>normalizedTag(t)===normalizedTag(activeFilter))});
- });
- if(mode==="event"&&activeFilter&&activeFilter!=="Рандом") list=list.filter(q=>q.group===activeFilter);
+if(mode==="event"&&activeFilter&&activeFilter!=="Рандом") list=list.filter(q=>q.group===activeFilter);
  if(false&&mode==="profession"&&activeFilter&&activeFilter!=="Рандом"){
    const groups={
     "Державні діячі":[["mazepa","doroshenko"],["hrushevsky","drahomanov"],["drahomanov","hrushevsky"]],
@@ -868,20 +861,56 @@ function canonicalProfessionCategory(value){
 }
 function getProfessionCategories(){let custom=[];try{custom=JSON.parse(localStorage.getItem("history-quiz-custom-professions")||"[]")}catch(e){}const renames=professionCategoryRenames(),base=[...professionCategories,...custom,...primaryValues("profession"),...professionQuestions.map(q=>q.category).filter(Boolean)];return [...new Set(base.map(x=>canonicalProfessionCategory(renames[x]||x)))].filter(Boolean)}
 function refreshQuestionCategoryOptions(){
- const list=$("questionCategoryOptions");
- if(!list)return;
+ const list=$("questionCategoryOptions");if(!list)return;
  const game=$("questionGame")?.value||"positive";
- let categories;
- if(game==="positive"){
-  const configured=getConfiguredSubmodes("positive",getWhoAmongCategories());
-  categories=[...configured.visible,...configured.extra];
- }else{
-  categories=getProfessionCategories().sort((a,b)=>a.localeCompare(b,"uk"));
- }
+ const categories=game==="positive"?getWhoAmongCategories():getProfessionCategories().sort((a,b)=>a.localeCompare(b,"uk"));
  list.innerHTML=categories.map(x=>`<option value="${adminEscape(x)}"></option>`).join("");
 }
-function saveCustomProfessionCategory(value,oldValue=null){value=normalizeProfessionLabel(value);oldValue=oldValue?normalizeProfessionLabel(oldValue):oldValue;let custom=[];try{custom=JSON.parse(localStorage.getItem("history-quiz-custom-professions")||"[]")}catch(e){}if(oldValue){custom=custom.filter(x=>x!==oldValue);const renames=professionCategoryRenames();renames[oldValue]=value;localStorage.setItem("history-quiz-profession-renames",JSON.stringify(renames));let prefs=readSubmodePrefs();for(const game of ["profession"]){if(Array.isArray(prefs[game]))prefs[game]=prefs[game].map(x=>x===oldValue?value:x)}localStorage.setItem(SUBMODE_PREF_KEY,JSON.stringify(prefs))}if(!custom.includes(value))custom.push(value);localStorage.setItem("history-quiz-custom-professions",JSON.stringify(custom));refreshQuestionCategoryOptions();renderQuestionAdmin();renderSubmodeSettings()}
-function initQuestionCategoryAdmin(){refreshQuestionCategoryOptions();$("addQuestionCategory")?.addEventListener("click",()=>{const value=prompt("Назва нового фаху / категорії:");if(value?.trim()){saveCustomProfessionCategory(value.trim());$("questionCategory").value=value.trim()}});$("editQuestionCategory")?.addEventListener("click",()=>{const oldValue=$("questionCategory").value.trim();if(!oldValue){alert("Спочатку обери фах у полі вище.");return}const value=prompt("Нова назва фаху:",oldValue);if(value?.trim()&&value.trim()!==oldValue){saveCustomProfessionCategory(value.trim(),oldValue);professionQuestions=professionQuestions.map(q=>q.category===oldValue?{...q,category:value.trim()}:q);$("questionCategory").value=value.trim();saveQuestionCatalog().catch(err=>alert("Не вдалося зберегти зміни: "+err.message))}})}
+function saveCustomProfessionCategory(value,oldValue=null){
+ value=normalizeProfessionLabel(value);oldValue=oldValue?normalizeProfessionLabel(oldValue):oldValue;
+ let custom=[];try{custom=JSON.parse(localStorage.getItem("history-quiz-custom-professions")||"[]")}catch(e){}
+ if(oldValue){
+  custom=custom.filter(x=>x!==oldValue);const renames=professionCategoryRenames();renames[oldValue]=value;
+  localStorage.setItem("history-quiz-profession-renames",JSON.stringify(renames));
+  let prefs=readSubmodePrefs();if(Array.isArray(prefs.profession))prefs.profession=prefs.profession.map(x=>x===oldValue?value:x);
+  localStorage.setItem(SUBMODE_PREF_KEY,JSON.stringify(prefs));
+  professionQuestions=professionQuestions.map(q=>q.game==="profession"&&q.category===oldValue?{...q,category:value}:q);
+ }
+ if(!custom.includes(value))custom.push(value);
+ localStorage.setItem("history-quiz-custom-professions",JSON.stringify(custom));
+ refreshQuestionCategoryOptions();renderQuestionAdmin();renderSubmodeSettings();
+}
+function saveCustomWhoAmongCategory(value,oldValue=null){
+ value=String(value||"").trim();oldValue=oldValue?String(oldValue).trim():null;
+ let custom=[];try{custom=JSON.parse(localStorage.getItem(WHO_AMONG_CATEGORIES_KEY)||"[]")}catch(e){}
+ if(oldValue){
+  custom=custom.filter(x=>x!==oldValue);let prefs=readSubmodePrefs();
+  if(Array.isArray(prefs.positive))prefs.positive=prefs.positive.map(x=>x===oldValue?value:x);
+  localStorage.setItem(SUBMODE_PREF_KEY,JSON.stringify(prefs));
+  professionQuestions=professionQuestions.map(q=>q.game==="positive"&&q.category===oldValue?{...q,category:value}:q);
+ }
+ if(value&&!custom.includes(value)&&!whoAmongCategories.includes(value))custom.push(value);
+ localStorage.setItem(WHO_AMONG_CATEGORIES_KEY,JSON.stringify(custom));
+ refreshQuestionCategoryOptions();renderQuestionAdmin();renderSubmodeSettings();
+ if(oldValue)saveQuestionCatalog().catch(err=>console.warn("Не вдалося зберегти категорію:",err));
+}
+function initQuestionCategoryAdmin(){
+ refreshQuestionCategoryOptions();
+ $("addQuestionCategory")?.addEventListener("click",()=>{
+  const game=$("questionGame")?.value||"positive",value=prompt(game==="positive"?"Назва нового режиму «Хто з них»:":"Назва нового фаху:");
+  if(value?.trim()){if(game==="positive")saveCustomWhoAmongCategory(value.trim());else saveCustomProfessionCategory(value.trim());$("questionCategory").value=value.trim();}
+ });
+ $("editQuestionCategory")?.addEventListener("click",()=>{
+  const game=$("questionGame")?.value||"positive",oldValue=$("questionCategory").value.trim();
+  if(!oldValue){alert("Спочатку обери категорію у полі вище.");return}
+  const value=prompt("Нова назва категорії:",oldValue);
+  if(value?.trim()&&value.trim()!==oldValue){
+   if(game==="positive")saveCustomWhoAmongCategory(value.trim(),oldValue);else saveCustomProfessionCategory(value.trim(),oldValue);
+   $("questionCategory").value=value.trim();
+   saveQuestionCatalog().catch(err=>alert("Не вдалося зберегти зміни: "+err.message));
+  }
+ });
+}
 function getEpochCategories(){return historicalEpochs.slice().sort((a,b)=>(a.order||0)-(b.order||0)).map(x=>x.name).filter(Boolean)}
 const eventGroups=["Козацька доба","Національно-визвольні змагання","Повоєнний період","Незалежна Україна","Рандом"];
 function closeSetup(){$("setupModal").classList.add("hidden")}
@@ -900,7 +929,7 @@ function renderProfessionSetup(){
  const panel=$("setupPanel"),categories=getProfessionCategories(),configured=getConfiguredSubmodes("profession",categories),visible=configured.visible,extra=configured.extra;
  const button=(value,label=value)=>`<button type="button" class="secondary" data-profession-category="${adminEscape(value)}">${adminEscape(label)}</button>`;
  let html='<div class="setup-options">'+button("Випадково")+button("__all_profession_questions__","Усі питання")+visible.map(x=>button(x)).join("")+'</div>';
- if(extra.length)html+='<div id="professionExtraModes" class="setup-options hidden" style="margin-top:8px">'+extra.map(x=>button(x)).join("")+'</div><button type="button" class="secondary setup-more" id="toggleProfessionMore">Більше режимів ↓</button>';
+ if(extra.length)html+='<div id="professionExtraModes" class="setup-options hidden" style="margin-top:8px">'+extra.slice(0,3).map(x=>button(x)).join("")+'</div><button type="button" class="secondary setup-more" id="toggleProfessionMore">Більше режимів ↓</button>';
  html+='<button type="button" class="secondary setup-back" id="backProfession">← Назад</button>';
  panel.insertAdjacentHTML("beforeend",html);
  panel.querySelectorAll("[data-profession-category]").forEach(b=>b.addEventListener("click",()=>{
@@ -910,13 +939,15 @@ function renderProfessionSetup(){
     const ids=Object.keys(taggedPeople).filter(id=>recordTypeOf(taggedPeople[id])==="person"&&professionTagsFor(id).some(t=>sameProfession(t,category)));
     return ids.length>=2&&(professionQuestions.some(q=>q.game==="profession"&&sameProfession(q.category,category)&&(ids.includes(q.correct||q.a)))||ids.some(id=>authorWorksFor(id).length));
    });
-   const pool=available.length?available:categories;
-   const chosen=pool[Math.floor(Math.random()*pool.length)];
-   start("profession",chosen||null);
-  }else if(value==="__all_profession_questions__")start("profession",null);
-  else start("profession",value);
+   const pool=available.length?available:categories;const chosen=pool[Math.floor(Math.random()*pool.length)];start("profession",chosen||null);
+  }else if(value==="__all_profession_questions__")start("profession",null);else start("profession",value);
  }));
- const more=panel.querySelector("#toggleProfessionMore");if(more)more.addEventListener("click",()=>{const box=panel.querySelector("#professionExtraModes"),opening=box.classList.contains("hidden");box.classList.toggle("hidden",!opening);more.textContent=opening?"Менше режимів ↑":"Більше режимів ↓"});
+ let shownExtra=Math.min(3,extra.length);const more=panel.querySelector("#toggleProfessionMore");
+ if(more)more.addEventListener("click",()=>{
+  const box=panel.querySelector("#professionExtraModes");shownExtra=Math.min(shownExtra+3,extra.length);
+  box.innerHTML=extra.slice(0,shownExtra).map(x=>button(x)).join("");box.classList.remove("hidden");
+  if(shownExtra>=extra.length)more.remove();
+ });
  panel.querySelector("#backProfession").addEventListener("click",()=>renderSetup("positive"));
 }
 function renderSetup(m){
@@ -925,10 +956,10 @@ function renderSetup(m){
   modalShell("Хто з них","Обери тематичний режим або запусти випадкову категорію.","");
   const positiveModes=getConfiguredSubmodes("positive",getWhoAmongCategories());const positiveOrdered=[...positiveModes.visible,...positiveModes.extra];renderChoiceOptions(positiveOrdered,"who-category",x=>{closeSetup();start("positive",x)},positiveModes.visible.length);
   const actions=document.createElement("div");
-  actions.style.cssText="display:flex;justify-content:space-between;gap:12px;margin-top:12px";
-  const randomButton=document.createElement("button");randomButton.type="button";randomButton.className="secondary";randomButton.textContent="🎲 Випадково";randomButton.style.flex="1";
+  actions.style.cssText="display:flex;justify-content:space-between;gap:12px;margin-top:12px;width:100%";
+  const randomButton=document.createElement("button");randomButton.type="button";randomButton.className="secondary";randomButton.textContent="🎲 Випадково";randomButton.style.cssText="flex:1;min-width:0";
   randomButton.addEventListener("click",()=>{const available=getWhoAmongCategories().filter(category=>category==="Позитивний персонаж"?professionQuestions.some(q=>q.game==="positive"&&q.category===category)||bank.positive.length>0:Object.keys(taggedPeople).some(id=>recordTypeOf(taggedPeople[id])==="person"&&isWhoAmongCategory(id,category)));const pool=available.length?available:whoAmongCategories;const chosen=pool[Math.floor(Math.random()*pool.length)];closeSetup();start("positive",chosen)});
-  const allButton=document.createElement("button");allButton.type="button";allButton.className="secondary";allButton.textContent="Усі питання";allButton.style.flex="1";
+  const allButton=document.createElement("button");allButton.type="button";allButton.className="secondary";allButton.textContent="Усі питання";allButton.style.cssText="flex:1;min-width:0";
   allButton.addEventListener("click",()=>{closeSetup();start("positive","__all_positive_questions__")});
   actions.append(randomButton,allButton);
   $("setupPanel").appendChild(actions);
@@ -1136,8 +1167,27 @@ document.querySelectorAll(".admin-fold-toggle").forEach(b=>b.addEventListener("c
 const SUBMODE_PREF_KEY="history-quiz-submode-featured-v1";
 function readSubmodePrefs(){try{return JSON.parse(localStorage.getItem(SUBMODE_PREF_KEY)||"{}")}catch(e){return {}}}
 function submodeItems(game){return game==="positive"?getWhoAmongCategories().filter(x=>x!=="Рандом"):game==="profession"?getProfessionCategories():eventGroups.filter(x=>x!=="Рандом")}
-function renderSubmodeSettings(){const game=$("submodeGame")?.value||"positive",items=submodeItems(game),prefs=readSubmodePrefs(),featured=prefs[game]||items.slice(0,3),list=$("submodeSettingsList");if(!list)return;list.innerHTML=items.map((x,i)=>`<label class="admin-person" style="display:flex;align-items:center;gap:10px"><input type="checkbox" data-submode-value="${adminEscape(x)}" ${featured.includes(x)?"checked":""}><span>${adminEscape(x)}</span><small style="margin-left:auto">Порядок ${i+1}</small></label>`).join("");list.querySelectorAll("[data-submode-value]").forEach(cb=>cb.addEventListener("change",()=>{const vals=[...list.querySelectorAll("[data-submode-value]:checked")].map(x=>x.dataset.submodeValue);prefs[game]=vals;localStorage.setItem(SUBMODE_PREF_KEY,JSON.stringify(prefs));}))}
-function getConfiguredSubmodes(game,items){const prefs=readSubmodePrefs()[game];if(!Array.isArray(prefs))return {visible:items.slice(0,3),extra:items.slice(3)};const visible=prefs.filter(x=>items.includes(x)),extra=items.filter(x=>!visible.includes(x));return {visible,extra}}
+function renderSubmodeSettings(){
+ const game=$("submodeGame")?.value||"positive",items=submodeItems(game),prefs=readSubmodePrefs(),saved=Array.isArray(prefs[game])?prefs[game]:[];
+ const ordered=[...saved.filter(x=>items.includes(x)),...items.filter(x=>!saved.includes(x))],list=$("submodeSettingsList");if(!list)return;
+ list.innerHTML=ordered.map((x,i)=>`<div class="admin-person" style="display:flex;align-items:center;gap:10px">
+  <input type="checkbox" data-submode-value="${adminEscape(x)}" ${i<3?"checked":""} aria-label="Показувати серед перших трьох">
+  <span style="flex:1">${adminEscape(x)}</span><small>Порядок ${i+1}</small>
+  <button type="button" class="secondary" data-submode-up="${i}" ${i===0?"disabled":""} aria-label="Перемістити вгору">↑</button>
+  <button type="button" class="secondary" data-submode-down="${i}" ${i===ordered.length-1?"disabled":""} aria-label="Перемістити вниз">↓</button>
+ </div>`).join("");
+ const save=()=>{prefs[game]=ordered.slice();localStorage.setItem(SUBMODE_PREF_KEY,JSON.stringify(prefs));renderSubmodeSettings();};
+ list.querySelectorAll("[data-submode-up]").forEach(b=>b.addEventListener("click",()=>{const i=Number(b.dataset.submodeUp);if(i>0){[ordered[i-1],ordered[i]]=[ordered[i],ordered[i-1]];save()}}));
+ list.querySelectorAll("[data-submode-down]").forEach(b=>b.addEventListener("click",()=>{const i=Number(b.dataset.submodeDown);if(i<ordered.length-1){[ordered[i+1],ordered[i]]=[ordered[i],ordered[i+1]];save()}}));
+ list.querySelectorAll("[data-submode-value]").forEach(cb=>cb.addEventListener("change",()=>{
+  const selected=[...list.querySelectorAll("[data-submode-value]:checked")].map(x=>x.dataset.submodeValue),rest=ordered.filter(x=>!selected.includes(x));
+  prefs[game]=[...selected,...rest];localStorage.setItem(SUBMODE_PREF_KEY,JSON.stringify(prefs));renderSubmodeSettings();
+ }));
+}
+function getConfiguredSubmodes(game,items){
+ const saved=readSubmodePrefs()[game],ordered=Array.isArray(saved)?[...saved.filter(x=>items.includes(x)),...items.filter(x=>!saved.includes(x))]:items.slice();
+ return {visible:ordered.slice(0,3),extra:ordered.slice(3)};
+}
 function initSubmodeSettings(){const sel=$("submodeGame");if(sel){sel.addEventListener("change",renderSubmodeSettings);renderSubmodeSettings()}}
 function fillQuestionPeople(){const opts=Object.entries(taggedPeople).filter(([id,p])=>recordTypeOf(p)==="person").sort((a,b)=>(a[1].name||a[0]).localeCompare(b[1].name||b[0],"uk")).map(([id,p])=>`<option value="${adminEscape(id)}">${adminEscape(p.name||id)}</option>`).join("");$("questionPersonA").innerHTML=opts}
 function setupQuestionEditorLayout(){const fold=$("questionAdmin")?.querySelector(".admin-fold-content");if(!fold||fold.querySelector(".question-editor-layout"))return;const search=fold.querySelector("#questionAdminSearch")?.closest(".field"),list=fold.querySelector("#questionAdminList"),form=fold.querySelector("#questionForm");if(!search||!list||!form)return;const layout=document.createElement("div");layout.className="question-editor-layout";const left=document.createElement("div");left.className="question-editor-list";const right=document.createElement("div");right.className="question-editor-form";search.style.margin="0 0 10px";left.append(search,list);right.append(form);layout.append(left,right);fold.append(layout)}
