@@ -554,7 +554,8 @@ function activeQuestions(){
   const ids=Object.keys(taggedPeople).filter(id=>recordTypeOf(taggedPeople[id])==="person");
   const getTags=(id,key)=>{
    const p=taggedPeople[id]||people[id]||{},t=p.primaryTags||{};
-   const vals=key==="country"?[...(Array.isArray(t.country)?t.country:[]),...(Array.isArray(p.state)?p.state:[])]:[...(Array.isArray(t.epoch)?t.epoch:[]),...(Array.isArray(t.century)?t.century:[]),...(Array.isArray(p.epoch)?p.epoch:[])];
+   // Для «Епоха» беремо саме індекс епохи; століття не підмішуємо.
+   const vals=key==="country"?[...(Array.isArray(t.country)?t.country:[]),...(Array.isArray(p.state)?p.state:[])]:[...(Array.isArray(t.epoch)?t.epoch:[]),...(Array.isArray(p.epoch)?p.epoch:[])];
    return [...new Set(vals.map(x=>String(x||"").trim()).filter(Boolean))];
   };
   const hasTag=(id,key,value)=>getTags(id,key).some(tag=>normalizedTag(tag)===normalizedTag(value));
@@ -614,7 +615,7 @@ function activeQuestions(){
    const selectedTags=key==="country"?(q.countries||[]):(q.epochs||[]);
    return !activeFilter||selectedTags.some(t=>normalizedTag(t)===normalizedTag(activeFilter));
   });
-  if(adminQuestions.length)generated.length=0;
+  // Ручні питання доповнюють автоматично сформовані, а не замінюють їх.
   for(const q of adminQuestions){
    const correctIds=ids.filter(id=>(q.answers||[]).some(a=>matchesAnswer(id,a)));
    if(!correctIds.length)continue;
@@ -634,7 +635,10 @@ function activeQuestions(){
   return generated;
  }
  const isAuthorQuestion=q=>q.kind==="author"||(/^\s*(чий|хто\s+написав|хто\s+є\s+автором)/i.test(q.q||""));
- let list=mode==="profession"?professionQuestions.filter(q=>q.game==="profession"&&!isAuthorQuestion(q)&&(!activeFilter||normalizedTag(activeFilter)==="випадково"||sameProfession(q.category,activeFilter))).flatMap(q=>{const correct=q.correct||q.a;if(!correct)return[];const pool=Object.keys(taggedPeople).filter(id=>id!==correct&&recordTypeOf(taggedPeople[id])==="person"&&professionTagsFor(id).some(t=>sameProfession(t,q.category)));const other=shuffle(pool)[0];return other?[{...q,correct,other,kind:"biography",_key:"admin-q-"+q.id}]:[]}):(mode==="positive"?[]:(bank[mode]||[]));
+ let list=mode==="profession"?[
+  ...professionQuestions.filter(q=>q.game==="profession"&&!isAuthorQuestion(q)&&(!activeFilter||normalizedTag(activeFilter)==="випадково"||activeFilter==="__all_profession_questions__"||sameProfession(q.category,activeFilter))).flatMap(q=>{const correct=q.correct||q.a;if(!correct)return[];const pool=Object.keys(taggedPeople).filter(id=>id!==correct&&recordTypeOf(taggedPeople[id])==="person"&&professionTagsFor(id).some(t=>sameProfession(t,q.category)));const other=shuffle(pool)[0];return other?[{...q,correct,other,kind:"biography",_key:"admin-q-"+q.id}]:[]}),
+  ...generatedAuthorQuestions(activeFilter==="__all_profession_questions__"?null:activeFilter).map(q=>({...q,kind:"author",_key:q._key||q.id}))
+ ]:(mode==="positive"?[]:(bank[mode]||[]));
 
  if(mode==="positive"){
   const catalog=professionQuestions.filter(q=>q.game==="positive"&&q.category&&q.q&&(!activeFilter||activeFilter==="__all_positive_questions__"||normalizedTag(q.category)===normalizedTag(activeFilter)));
