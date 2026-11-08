@@ -244,6 +244,7 @@ let professionQuestions=(()=>{try{const a=JSON.parse(localStorage.getItem(QUESTI
 let periodQuestions=(()=>{try{const a=JSON.parse(localStorage.getItem(PERIOD_QUESTIONS_KEY)||"[]");return Array.isArray(a)?a:[]}catch(e){return []}})();
 let editingStateId=null,workingStatePhoto="",editingQuestionId=null,editingPeriodQuestionId=null;
 let questionAdminGameFilter="positive";
+let selectedWhoCategory=null,editingWhoCategory=null;
 
 let gameGates={};
 try{const savedGates=JSON.parse(localStorage.getItem(GATES_KEY)||"{}");if(savedGates&&typeof savedGates==="object")gameGates=savedGates}catch(e){}
@@ -1150,7 +1151,7 @@ function getConfiguredSubmodes(game,items){
 function initSubmodeSettings(){const sel=$("submodeGame");if(sel){sel.addEventListener("change",renderSubmodeSettings);renderSubmodeSettings()}}
 function fillQuestionPeople(){const opts=Object.entries(taggedPeople).filter(([id,p])=>recordTypeOf(p)==="person").sort((a,b)=>(a[1].name||a[0]).localeCompare(b[1].name||b[0],"uk")).map(([id,p])=>`<option value="${adminEscape(id)}">${adminEscape(p.name||id)}</option>`).join("");$("questionPersonA").innerHTML=opts}
 function setupQuestionEditorLayout(){const fold=$("questionAdmin")?.querySelector(".admin-fold-content");if(!fold||fold.querySelector(".question-editor-layout"))return;const search=fold.querySelector("#questionAdminSearch")?.closest(".field"),list=fold.querySelector("#questionAdminList"),form=fold.querySelector("#questionForm");if(!search||!list||!form)return;const layout=document.createElement("div");layout.className="question-editor-layout";const left=document.createElement("div");left.className="question-editor-list";const right=document.createElement("div");right.className="question-editor-form";search.style.margin="0 0 10px";left.append(search,list);right.append(form);layout.append(left,right);fold.append(layout)}
-let selectedWhoCategory=null,editingWhoCategory=null;
+
 function renderWhoAmongCategories(){
  const list=$("whoCategoryList");if(!list)return;
  const categories=getWhoAmongCategories().filter(x=>x!=="Рандом");
