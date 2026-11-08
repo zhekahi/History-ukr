@@ -1081,11 +1081,27 @@ function setupAdminSections(){
  adminSectionsReady=true;
 }
 async function openAdmin(){
- await peopleReady;
- let allowed=false;
- try{allowed=await refreshCloudAuth();}catch(err){$("cloudStatus").textContent="Не вдалося перевірити права доступу: "+err.message;}
- if(!allowed){$("accountModal").classList.remove("hidden");return;}
- setupAdminSections();$("adminModal").classList.remove("hidden");$("adminHome").classList.remove("hidden");["stats","games","questions","records"].forEach(id=>$("adminPage-"+id).classList.add("hidden"));renderAdmin();renderGateEditor();renderEpochAdmin();renderStateAdmin();renderQuestionAdmin();renderPeriodQuestionAdmin();resetStateForm();resetQuestionForm();resetPeriodQuestionForm();clearPersonForm();
+ // Show immediate feedback so the click never appears inert while cloud data loads.
+ const modal=$("adminModal");
+ modal.classList.remove("hidden");
+ let status=$("adminOpenStatus");
+ if(!status){status=document.createElement("p");status.id="adminOpenStatus";status.className="admin-tags-help";status.style.cssText="padding:12px 0";modal.querySelector(".admin-modal .modal-top").insertAdjacentElement("afterend",status);}
+ status.textContent="Перевіряємо доступ і завантажуємо каталог…";
+ $("adminEditor").classList.add("hidden");
+ try{
+  await peopleReady;
+  const allowed=await refreshCloudAuth();
+  if(!allowed){modal.classList.add("hidden");$("accountModal").classList.remove("hidden");return;}
+  setupAdminSections();
+  $("adminEditor").classList.remove("hidden");
+  status.remove();
+  $("adminHome").classList.remove("hidden");
+  ["stats","games","questions","records"].forEach(id=>$("adminPage-"+id).classList.add("hidden"));
+  renderAdmin();renderGateEditor();renderEpochAdmin();renderStateAdmin();renderQuestionAdmin();renderPeriodQuestionAdmin();resetStateForm();resetQuestionForm();resetPeriodQuestionForm();clearPersonForm();
+ }catch(err){
+  status.textContent="Не вдалося відкрити адмін-панель: "+(err?.message||String(err));
+  console.error("openAdmin:",err);
+ }
 }
 
 function closeAdmin(){$("adminModal").classList.add("hidden")}
