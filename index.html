@@ -1081,17 +1081,21 @@ function setupAdminSections(){
  adminSectionsReady=true;
 }
 async function openAdmin(){
- // Show immediate feedback so the click never appears inert while cloud data loads.
+ // Admin status is already established by refreshCloudAuth() and reflected in the button visibility.
+ // Avoid a second auth/profile round-trip on click, which could incorrectly bounce a valid admin.
+ if(!cloudUser||!cloudAdmin){
+  $("adminModal").classList.add("hidden");
+  $("accountModal").classList.remove("hidden");
+  return;
+ }
  const modal=$("adminModal");
  modal.classList.remove("hidden");
  let status=$("adminOpenStatus");
  if(!status){status=document.createElement("p");status.id="adminOpenStatus";status.className="admin-tags-help";status.style.cssText="padding:12px 0";modal.querySelector(".admin-modal .modal-top").insertAdjacentElement("afterend",status);}
- status.textContent="Перевіряємо доступ і завантажуємо каталог…";
+ status.textContent="Завантажуємо каталог…";
  $("adminEditor").classList.add("hidden");
  try{
   await peopleReady;
-  const allowed=await refreshCloudAuth();
-  if(!allowed){modal.classList.add("hidden");$("accountModal").classList.remove("hidden");return;}
   setupAdminSections();
   $("adminEditor").classList.remove("hidden");
   status.remove();
