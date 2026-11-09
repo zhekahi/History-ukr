@@ -686,6 +686,33 @@ function activeQuestions(){
    const distractors=peopleIds.filter(id=>!isWhoAmongCategory(id,q.category));
    for(const correct of matching){const other=shuffle(distractors)[0];if(other)list.push({...q,correct,other,_key:"who-catalog-"+(q.id||q.category)+"-"+correct});}
   }
+  // «Усі питання» генерує запитання безпосередньо з усіх індексів
+  // «Фах / роль» у каталозі постатей, а не лише з ручного каталогу питань.
+  if(allProfessionQuestions){
+   const professionByKey=new Map();
+   for(const id of peopleIds){
+    for(const tag of professionTagsFor(id)){
+     const clean=String(tag||"").trim();
+     const key=normalizedTag(clean);
+     if(key&&!professionByKey.has(key))professionByKey.set(key,clean);
+    }
+   }
+   for(const [key,tag] of professionByKey){
+    const matching=peopleIds.filter(id=>professionTagsFor(id).some(value=>normalizedTag(value)===key));
+    const distractors=peopleIds.filter(id=>!professionTagsFor(id).some(value=>normalizedTag(value)===key));
+    if(!matching.length||!distractors.length)continue;
+    for(const correct of matching){
+     const other=shuffle(distractors)[0];
+     if(!other)continue;
+     list.push({
+      q:"Хто з цих постатей належить до фаху / ролі «"+tag.replace(/_/g," ")+"»?",
+      correct,other,
+      why:"Фах / роль визначено за індексом у каталозі постатей.",
+      _key:"who-auto-profession-"+key+"-"+correct
+     });
+    }
+   }
+  }
  }
 if(mode==="event"&&activeFilter&&activeFilter!=="Рандом") list=list.filter(q=>q.group===activeFilter);
  if(false&&mode==="profession"&&activeFilter&&activeFilter!=="Рандом"){
