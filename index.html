@@ -503,10 +503,12 @@ function whoAmongOptions(q,excluded=[]){
  const correct=q.correct,blocked=new Set(excluded);
  const pool=Object.keys(taggedPeople).filter(id=>recordTypeOf(taggedPeople[id])==="person"&&id!==correct);
  let distractors=pool;
- const allPositiveQuestions=mode==="positive"&&activeFilter==="__all_positive_questions__";
+ // У режимі «Усі питання» питання можуть бути з будь-якого фаху,
+ // а друга постать добирається із загального каталогу без фільтра категорії.
+ const allProfessionQuestions=mode==="positive"&&activeFilter==="__all_positive_questions__";
  if(activeFilter==="Позитивний персонаж"){
   distractors=[q.other,...["stalin","catherine"].filter(id=>id!==q.other&&people[id])].filter(id=>id&&id!==correct&&pool.includes(id));
- }else if(activeFilter&&!allPositiveQuestions){
+ }else if(activeFilter&&!allProfessionQuestions){
   const outside=pool.filter(id=>!isWhoAmongCategory(id,activeFilter));
   if(outside.length)distractors=outside;
  }
@@ -676,12 +678,8 @@ function activeQuestions(){
  ]:(mode==="positive"?[]:(bank[mode]||[]));
 
  if(mode==="positive"){
-  const allPositiveQuestions=activeFilter==="__all_positive_questions__";
-  // «Усі питання» охоплює весь каталог «Хто з них» без огляду на
-  // те, які категорії показуються одразу або приховані за «Більше».
-  const catalog=professionQuestions.filter(q=>q.game==="positive"&&q.category&&q.q&&(
-   allPositiveQuestions||!activeFilter||normalizedTag(q.category)===normalizedTag(activeFilter)
-  ));
+  const allProfessionQuestions=activeFilter==="__all_positive_questions__";
+  const catalog=professionQuestions.filter(q=>q.game==="positive"&&q.category&&q.q&&(allProfessionQuestions||!activeFilter||normalizedTag(q.category)===normalizedTag(activeFilter)));
   const peopleIds=Object.keys(taggedPeople).filter(id=>recordTypeOf(taggedPeople[id])==="person");
   for(const q of catalog){
    const matching=peopleIds.filter(id=>isWhoAmongCategory(id,q.category));
