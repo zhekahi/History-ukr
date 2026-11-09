@@ -651,7 +651,8 @@ function activeQuestions(){
    const distractors=ids.filter(id=>!correctIds.includes(id));
    for(const correct of correctIds){
     for(const other of shuffle(distractors).slice(0,Math.min(5,distractors.length))){
-     const displayTag=String(tag).replace(/_/g," ");\n     const q=participantFilterType==="organization"?"Хто з цих постатей був учасником організації "+displayTag+"?":"Хто з цих постатей був учасником події "+displayTag+"?";
+     const displayTag=String(tag).replace(/_/g," ");
+     const q=participantFilterType==="organization"?"Хто з цих постатей був учасником організації "+displayTag+"?":"Хто з цих постатей був учасником події "+displayTag+"?";
      generated.push({q,correct,other,why:"Участь визначено за індексом «"+tagLabel+"», зазначеним у каталозі постатей.",_key:"participant-"+tagKey+"-"+normalizedTag(tag)+"-"+correct+"-"+other});
     }
    }
