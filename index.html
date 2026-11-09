@@ -472,6 +472,27 @@ function normalizeProfessionLabel(value){
  };
  return aliases[key]||raw;
 }
+function professionSingularLabel(value){
+ const raw=String(value||"").trim().replace(/_/g," ");
+ const key=canonicalProfession(raw);
+ const labels={
+  "письменник":"Письменник","художник":"Художник","митець":"Митець",
+  "державнийдіяч":"Державний діяч","воєначальник":"Воєначальник","полководець":"Полководець",
+  "науковець":"Науковець","композитор":"Композитор","винахідник":"Винахідник",
+  "мандрівниктапершовідкривач":"Мандрівник та першовідкривач","поет":"Поет","перекладач":"Перекладач",
+  "актор":"Актор","співак":"Співак","режисер":"Режисер","дослідник":"Дослідник",
+  "історик":"Історик","філософ":"Філософ","архітектор":"Архітектор","лікар":"Лікар",
+  "правозахисник":"Правозахисник","журналіст":"Журналіст","дипломат":"Дипломат",
+  "політик":"Політик","публіцист":"Публіцист","драматург":"Драматург",
+  "скульптор":"Скульптор","живописець":"Живописець","педагог":"Педагог","освітянин":"Освітянин"
+ };
+ if(labels[key])return labels[key];
+ let singular=raw;
+ if(/ники$/iu.test(singular)) singular=singular.replace(/и$/iu,"");
+ else if(/ці$/iu.test(singular)) singular=singular.replace(/ці$/iu,"ець");
+ else if(/[иі]$/iu.test(singular)) singular=singular.slice(0,-1);
+ return singular.charAt(0).toLocaleUpperCase("uk")+singular.slice(1);
+}
 function canonicalProfession(value){
  const n=normalizeProfessionLabel(value).toLocaleLowerCase("uk").replace(/[’'`]/g,"").replace(/[^\p{L}\p{N}]+/gu,"");
  const aliases={
@@ -705,7 +726,7 @@ function activeQuestions(){
      const other=shuffle(distractors)[0];
      if(!other)continue;
      list.push({
-      q:"Хто з цих постатей належить до фаху / ролі «"+tag.replace(/_/g," ")+"»?",
+      q:professionSingularLabel(tag),
       correct,other,
       why:"Фах / роль визначено за індексом у каталозі постатей.",
       _key:"who-auto-profession-"+key+"-"+correct
